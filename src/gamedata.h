@@ -25,7 +25,7 @@ class GameData
     Module *get_possible_module(int);
     vector<Module> modules;
     vector<Module> possible_modules;
-    vector<Module> get_active_modules();
+    vector<Module *> get_active_modules();
     void setMode(int);
     int getMode() { return mode; }
     int setVerbose(int v) { verbose = v; }

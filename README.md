@@ -8,3 +8,6 @@ tools that plug into the OBD dongle
 
 NOTE: This is a complete rewrite of uds-server.
 
+Compiling
+---------
+You need libsdl2-dev, libsdl2-image and libsdl2-ttf

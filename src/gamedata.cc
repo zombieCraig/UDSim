@@ -15,10 +15,10 @@ Module *GameData::get_module(int id) {
   return NULL;
 }
 
-vector <Module> GameData::get_active_modules() {
-  vector<Module> active_modules;
+vector <Module *> GameData::get_active_modules() {
+  vector<Module *> active_modules;
   for(vector<Module>::iterator it = modules.begin(); it != modules.end(); ++it) {
-    if(it->isResponder() == false) active_modules.push_back(*it);
+    if(it->isResponder() == false) active_modules.push_back(&*it);
   }  
   return active_modules;
 }
@@ -153,6 +153,7 @@ void GameData::processLearned() {
      }
   }
   if(verbose) cout << "Identified " << GameData::get_active_modules().size() << " Active modules" << endl;
+
 }
 
 string GameData::frame2string(canfd_frame *cf) {

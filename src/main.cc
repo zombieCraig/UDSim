@@ -61,6 +61,7 @@ int main(int argc, char *argv[]) {
       if(log.Eof()) {
        process_log = false;
        gd.setMode(MODE_SIM);
+       gui.Redraw();
       } else {
        gui.Msg(log.processNext());
       }

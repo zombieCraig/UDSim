@@ -13,6 +13,14 @@
 
 using namespace std;
 
+#define STATE_IDLE      0
+#define STATE_ACTIVE    1
+#define STATE_MOUSEOVER 2
+#define STATE_SELECTED  3
+
+#define MODULE_H 30
+#define MODULE_W 35
+
 class Module
 {
  public:
@@ -31,6 +39,12 @@ class Module
   void setResponder(bool v) { responder = v; }
   bool isResponder() { return responder; }
   void addPacket(struct canfd_frame *);
+  int getState();
+  void setState(int s) { state = s; }
+  int getX() { return _x; }
+  int getY() { return _y; }
+  void setX(int x) { _x = x; }
+  void setY(int y) { _y = y; }
  private:
   int arbId;
   int matched_isotp = 0;
@@ -38,6 +52,9 @@ class Module
   bool padding = false;
   char padding_byte;
   bool responder = false;
+  int state = STATE_IDLE;
+  int _x = 0;
+  int _y = 0;
   vector<CanFrame *>can_history;
   Module *positive_responder = NULL;
   Module *negative_responder = NULL;
