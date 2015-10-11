@@ -17,7 +17,7 @@ void Usage(string msg) {
 }
 
 int main(int argc, char *argv[]) {
-  int running = 1, opt;
+  int running = 1, opt, res;
   int verbose = 0;
   bool process_log = false;
   Gui gui;
@@ -52,7 +52,8 @@ int main(int argc, char *argv[]) {
   gd.setCan(new Can(argv[optind]));
 
   gui.setVerbose(verbose);
-  gui.Init();
+  res=gui.Init();
+  if(res < 0) exit(3);
 
   gd.setVerbose(verbose);
   while(running) {

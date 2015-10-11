@@ -5,9 +5,8 @@
 #include <vector>
 #include <stdlib.h>
 #include <string.h>
-//#include <net/if.h>
-//#include <linux/can.h>
-//#include <linux/can/raw.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 
 #include "canframe.h"
 
@@ -45,6 +44,8 @@ class Module
   int getY() { return _y; }
   void setX(int x) { _x = x; }
   void setY(int y) { _y = y; }
+  SDL_Texture *getIdTexture() { return id_texture; }
+  void setIdTexture(SDL_Texture *t) { id_texture = t; }
  private:
   int arbId;
   int matched_isotp = 0;
@@ -55,6 +56,7 @@ class Module
   int state = STATE_IDLE;
   int _x = 0;
   int _y = 0;
+  SDL_Texture *id_texture = NULL;
   vector<CanFrame *>can_history;
   Module *positive_responder = NULL;
   Module *negative_responder = NULL;

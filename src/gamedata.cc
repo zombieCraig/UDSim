@@ -124,7 +124,6 @@ Module *GameData::isPossibleISOTP(canfd_frame *cf) {
 void GameData::processLearned() {
   if(verbose) cout << "Identified " << possible_modules.size() << " possible modules" << endl;
   for(vector<Module>::iterator it = possible_modules.begin(); it != possible_modules.end(); ++it) {
-    cout << "DEBUG: ID: " << hex << it->getArbId() << " confidence " << it->confidence() << endl;
     if(it->confidence() > CONFIDENCE_THRESHOLD) {
       if(verbose) cout << "ID: " << it->getArbId() << " Looks like a UDS compliant module" << endl;
       modules.push_back(*it);
