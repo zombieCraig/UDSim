@@ -1,6 +1,8 @@
 #include "gui.h"
 
 Gui::Gui() {
+  int i;
+  for(i = 0; i < MAX_LOG_ENTRIES; i++) { logbuff[i] = NULL; }
   data_path = "../data/";
   font_path = "../data/fonts/";
   srand(time(NULL));
@@ -9,8 +11,6 @@ Gui::Gui() {
 Gui::~Gui() {
   SDL_DestroyTexture(module_texture);
   SDL_DestroyTexture(base_texture);
-  SDL_FreeSurface(module_image);
-  SDL_FreeSurface(base_image);
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
   IMG_Quit();
@@ -19,6 +19,7 @@ Gui::~Gui() {
 }
 
 int Gui::Init() {
+  SDL_Surface *base_image, *module_image, *icon_save_image;
   if(SDL_Init ( SDL_INIT_VIDEO ) < 0 ) {
         printf("SDL Could not initializes\n");
         return(-1);
@@ -34,8 +35,16 @@ int Gui::Init() {
   renderer = SDL_CreateRenderer(window, -1, 0);
   base_image = Gui::load_image("udsbg.png");
   module_image = Gui::load_image("module.png");
+  icon_save_image = Gui::load_image("save_icon.png");
   base_texture = SDL_CreateTextureFromSurface(renderer, base_image);
   module_texture = SDL_CreateTextureFromSurface(renderer, module_image);
+  SDL_FreeSurface(module_image);
+  SDL_FreeSurface(base_image);
+  // Toolbar
+  saveButton = new IconButton();
+  saveButton->setLoc(ICON_SAVE_X, ICON_SAVE_Y, ICON_SAVE_H, ICON_SAVE_W);
+  saveButton->setTexture(SDL_CreateTextureFromSurface(renderer, icon_save_image));
+  SDL_FreeSurface(icon_save_image);
   module_ttf = Gui::load_font("FreeSans.ttf", 10);
   if(!module_ttf) {
     cout << TTF_GetError() << endl;
@@ -126,10 +135,25 @@ void Gui::DrawModules() {
   }
 }
 
+void Gui::DrawToolbar() {
+  SDL_Rect toolbar, icon;
+  toolbar.x = TOOLBAR_REGION_X;
+  toolbar.y = TOOLBAR_REGION_Y;
+  toolbar.w = TOOLBAR_REGION_W;
+  toolbar.h = TOOLBAR_REGION_H;
+  SDL_RenderCopy(renderer, base_texture, &toolbar, &toolbar);
+  icon.x = saveButton->getState() * ICON_SAVE_W;
+  icon.y = 0;
+  icon.w = ICON_SAVE_W;
+  icon.h = ICON_SAVE_H;
+  SDL_RenderCopy(renderer, saveButton->getTexture(), &icon, saveButton->getLoc());
+}
+
 void Gui::Redraw() {
   SDL_RenderCopy(renderer, base_texture, NULL, NULL);
   Gui::DrawModules();
   Gui::DrawLog();
+  Gui::DrawToolbar();
   SDL_RenderPresent(renderer);
 }
 
@@ -137,32 +161,43 @@ void Gui::HandleMouseMotions(SDL_MouseMotionEvent motion) {
   int x = motion.x;
   int y = motion.y;
   bool change = false;
+  bool change_toolbar = false;
   /* Check to see if hovering over a module */
   vector<Module *>modules = gd.get_active_modules();
-  for(vector<Module *>::iterator it = modules.begin(); it != modules.end(); ++it) {
-    Module *mod = *it;
-    if(x > mod->getX() && x < mod->getX() + MODULE_W && y > mod->getY() && y < mod->getY() + MODULE_H) {
-      if(mod->getState() == STATE_SELECTED) {
-        mod->setX(mod->getX() + motion.xrel);
-        mod->setY(mod->getY() + motion.yrel);
-        if(mod->getX() < CAR_REGION_X) mod->setX(CAR_REGION_X);
-        if(mod->getY() < CAR_REGION_Y) mod->setY(CAR_REGION_Y);
-        if(mod->getX() > CAR_REGION_X + CAR_REGION_W - MODULE_W) mod->setX(CAR_REGION_X + CAR_REGION_W - MODULE_W);
-        if(mod->getY() > CAR_REGION_Y + CAR_REGION_H - MODULE_H) mod->setY(CAR_REGION_Y + CAR_REGION_H - MODULE_H);
-        change = true;
-      } else if(mod->getState() != STATE_MOUSEOVER) {
-        mod->setState(STATE_MOUSEOVER);
+  if(Gui::isOverCarRegion(x, y)) {
+    for(vector<Module *>::iterator it = modules.begin(); it != modules.end(); ++it) {
+      Module *mod = *it;
+      if(x > mod->getX() && x < mod->getX() + MODULE_W && y > mod->getY() && y < mod->getY() + MODULE_H) {
+        if(mod->getState() == STATE_SELECTED) {
+          mod->setX(mod->getX() + motion.xrel);
+          mod->setY(mod->getY() + motion.yrel);
+          if(mod->getX() < CAR_REGION_X) mod->setX(CAR_REGION_X);
+          if(mod->getY() < CAR_REGION_Y) mod->setY(CAR_REGION_Y);
+          if(mod->getX() > CAR_REGION_X + CAR_REGION_W - MODULE_W) mod->setX(CAR_REGION_X + CAR_REGION_W - MODULE_W);
+          if(mod->getY() > CAR_REGION_Y + CAR_REGION_H - MODULE_H) mod->setY(CAR_REGION_Y + CAR_REGION_H - MODULE_H);
+          change = true;
+        } else if(mod->getState() != STATE_MOUSEOVER) {
+          mod->setState(STATE_MOUSEOVER);
+          change = true;
+        }
+      } else if (mod->getState() == STATE_MOUSEOVER) {
+        mod->setState(STATE_IDLE);
         change = true;
       }
-    } else if (mod->getState() == STATE_MOUSEOVER) {
-      mod->setState(STATE_IDLE);
-      change = true;
     }
   }
-  if(change) {
-    Gui::DrawModules();
-    SDL_RenderPresent(renderer);
+  if(saveButton->isOver(x, y)) {
+    if(saveButton->getState() == ICON_STATE_IDLE) {
+      saveButton->setState(ICON_STATE_HOVER);
+      change_toolbar = true;
+    }
+  } else if(saveButton->getState() == ICON_STATE_HOVER) {
+    saveButton->setState(ICON_STATE_IDLE);
+    change_toolbar = true;
   }
+  if(change) Gui::DrawModules();
+  if(change_toolbar) Gui::DrawToolbar();
+  if(change || change_toolbar) SDL_RenderPresent(renderer);
 }
 
 bool Gui::isOverCarRegion(int x, int y) {
@@ -171,8 +206,15 @@ bool Gui::isOverCarRegion(int x, int y) {
   return false;
 }
 
+bool Gui::isOverToolbarRegion(int x, int y) {
+  if(x > TOOLBAR_REGION_X && x < TOOLBAR_REGION_X + TOOLBAR_REGION_W &&
+     y > TOOLBAR_REGION_Y && y < TOOLBAR_REGION_Y + TOOLBAR_REGION_H) return true;
+  return false;
+}
+
 void Gui::HandleMouseClick(SDL_MouseButtonEvent button) {
   bool change = false;
+  bool change_toolbar = false;
   if(button.button == SDL_BUTTON_LEFT) {
     if(button.state == SDL_PRESSED) {
       if(Gui::isOverCarRegion(button.x, button.y)) {
@@ -184,6 +226,12 @@ void Gui::HandleMouseClick(SDL_MouseButtonEvent button) {
                mod->setState(STATE_SELECTED);
                change = true;
           }
+        }
+      } else if (Gui::isOverToolbarRegion(button.x, button.y)) {
+        if(saveButton->isOver(button.x, button.y)) {
+          saveButton->setState(ICON_STATE_SELECTED);
+          change_toolbar = true;
+          gd.SaveConfig();
         }
       }
     } else if (button.state == SDL_RELEASED) {
@@ -197,13 +245,17 @@ void Gui::HandleMouseClick(SDL_MouseButtonEvent button) {
                change = true;
           }
         }
-      }
+      } else if(Gui::isOverToolbarRegion(button.x, button.y)) {
+        if(saveButton->isOver(button.x, button.y)) {
+          saveButton->setState(ICON_STATE_HOVER);
+          change_toolbar = true;
+        }
+     }
     }
   }
-  if(change) {
-    Gui::DrawModules();
-    SDL_RenderPresent(renderer);
-  }
+  if(change) Gui::DrawModules();
+  if(change_toolbar) Gui::DrawToolbar();
+  if(change || change_toolbar) SDL_RenderPresent(renderer);
 }
 
 int Gui::HandleEvents() {
@@ -235,9 +287,6 @@ int Gui::HandleEvents() {
 
 void Gui::DrawLog() {
   SDL_Rect logrect, trect, pos;
-  SDL_Color font_color = { 255, 255, 255, 255 };
-  SDL_Surface *font;
-  SDL_Texture *font_texture; // TODO chang the string array to a cached texture array
   int i;
   logrect.x = LOG_REGION_X;
   logrect.y = LOG_REGION_Y;
@@ -245,34 +294,32 @@ void Gui::DrawLog() {
   logrect.h = LOG_REGION_H;
   SDL_RenderCopy(renderer, base_texture, &logrect, &logrect);
   for(i = 0; i < MAX_LOG_ENTRIES; i++) {
-    if(logbuff[i].size() > 0) {
-      font = TTF_RenderText_Blended(log_ttf, logbuff[i].c_str(), font_color);
-      font_texture = SDL_CreateTextureFromSurface(renderer, font);
+    if(logbuff[i] != NULL) {
       trect.x = 0;
       trect.y = 0;
-      trect.h = font->h;
-      if(font->w > LOG_REGION_W) {
-        trect.w = LOG_REGION_W;
-      } else {
-        trect.w = font->w;
-      }
-      SDL_FreeSurface(font);
+      SDL_QueryTexture(logbuff[i], NULL, NULL, &trect.w, &trect.h);
+      if(trect.w > LOG_REGION_W) trect.w = LOG_REGION_W;
       pos.x = LOG_REGION_X;
-      pos.y = LOG_REGION_Y + LOG_REGION_H - (trect.h * i);
+      pos.y = LOG_REGION_Y + LOG_REGION_H - (trect.h * i) - trect.h;
       pos.h = trect.h;
       pos.w = trect.w;
-      SDL_RenderCopy(renderer, font_texture, &trect, &pos);
+      SDL_RenderCopy(renderer, logbuff[i], &trect, &pos);
     }
   }
 }
 
 void Gui::Msg(string m) {
   int i;
+  SDL_Color font_color = { 255, 255, 255, 255 };
+  SDL_Surface *font;
   if(verbose) { cout << m << endl; }
+  if(logbuff[MAX_LOG_ENTRIES-1] != NULL) SDL_DestroyTexture(logbuff[MAX_LOG_ENTRIES-1]);
   for(i = MAX_LOG_ENTRIES-1; i > 0; i--) {
     logbuff[i] = logbuff[i-1];
   }
-  logbuff[0] = m;
+  font = TTF_RenderText_Blended(log_ttf, m.c_str(), font_color);
+  logbuff[0] = SDL_CreateTextureFromSurface(renderer, font);
+  SDL_FreeSurface(font);
   Gui::DrawLog();
   SDL_RenderPresent(renderer);
 }

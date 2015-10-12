@@ -3,10 +3,12 @@
 
 #include <cstddef>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <iomanip>
 #include <vector>
 #include "module.h"
+#include "gui.h"
 #include "can.h"
 
 using namespace std;
@@ -15,6 +17,8 @@ using namespace std;
 #define MODE_LEARN 1
 
 #define CONFIDENCE_THRESHOLD 0.6 // 60%
+
+class Gui;
 
 class GameData
 {
@@ -34,6 +38,9 @@ class GameData
     Can *getCan() { return canif; }
     void processPkt(canfd_frame *);
     string frame2string(canfd_frame *);
+    void setGUI(Gui *g) { _gui = g; }
+    void Msg(string);
+    bool SaveConfig();
   private:
     void HandleSim(canfd_frame *);
     void LearnPacket(canfd_frame *);
@@ -42,6 +49,7 @@ class GameData
     int mode = MODE_SIM;
     int verbose = 0;
     Can *canif;
+    Gui *_gui;
 };
 
 #endif

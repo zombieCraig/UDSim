@@ -1,7 +1,7 @@
 CC=g++
 CFLAGS=-ggdb -std=gnu++11 -MMD -MP -I/usr/include/SDL2 -Iinclude 
 LDFLAGS=-lSDL2 -lSDL2_image -lSDL2_ttf
-OBJS=main.o gui.o logparser.o module.o gamedata.o can.o canframe.o
+OBJS=main.o gui.o logparser.o module.o gamedata.o can.o canframe.o icon-button.o
 DEP         := $(OBJS:.o=.d)
 
 all: udsim
@@ -24,6 +24,9 @@ can.o:
 
 canframe.o:
 	$(CC) $(CFLAGS) -c canframe.cc
+
+icon-button.o:
+	$(CC) $(CFLAGS) -c icon-button.cc
 
 gamedata.o:
 	$(CC) $(CFLAGS) -c gamedata.cc

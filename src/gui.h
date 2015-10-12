@@ -10,10 +10,11 @@
 
 #include "gamedata.h"
 #include "module.h"
+#include "icon-button.h"
 
 using namespace std;
 
-#define MAX_LOG_ENTRIES 23
+#define MAX_LOG_ENTRIES 22
 // The region of the vehicle on the screen
 #define CAR_REGION_X 245
 #define CAR_REGION_Y 58
@@ -24,6 +25,18 @@ using namespace std;
 #define LOG_REGION_Y 40
 #define LOG_REGION_H 446
 #define LOG_REGION_W 270
+// Toolbar region
+#define TOOLBAR_REGION_X 450
+#define TOOLBAR_REGION_Y 0
+#define TOOLBAR_REGION_H 50
+#define TOOLBAR_REGION_W 270
+// Save Icon
+#define ICON_SAVE_X 453
+#define ICON_SAVE_Y 0
+#define ICON_SAVE_H 50
+#define ICON_SAVE_W 50
+
+class GameData;
 
 extern GameData gd;
 
@@ -50,21 +63,22 @@ class Gui {
   private:
   void DrawModules();
   void DrawLog();
+  void DrawToolbar();
   void HandleMouseMotions(SDL_MouseMotionEvent);
   void HandleMouseClick(SDL_MouseButtonEvent);
   bool isOverCarRegion(int, int);
+  bool isOverToolbarRegion(int, int);
   int width = 720;
   int height = 486;
   int verbose = 0;
   string data_path;
   string font_path;
-  string logbuff[MAX_LOG_ENTRIES];
+  IconButton *saveButton = NULL;
+  SDL_Texture *logbuff[MAX_LOG_ENTRIES];
   SDL_Window *window = NULL;
   SDL_Surface *screen = NULL;
   SDL_Renderer *renderer = NULL;
-  SDL_Surface *base_image = NULL;
   SDL_Texture *base_texture = NULL;
-  SDL_Surface *module_image = NULL;
   SDL_Texture *module_texture = NULL;
   SDL_Event event;
   TTF_Font *module_ttf = NULL;

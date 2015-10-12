@@ -34,19 +34,19 @@ Module *GameData::get_possible_module(int id) {
 void GameData::setMode(int m) {
   switch(m) {
     case MODE_SIM:
-      if(verbose) cout << "Switching to Simulator mode" << endl;
+      Msg("Switching to Simulator mode");
       if(mode == MODE_LEARN) { // Previous mode was learning, update
-        if(verbose) cout << "Normalizing learned data" << endl;
+        Msg("Normalizing learned data");
         GameData::processLearned();
       }
       mode=m;
       break;
     case MODE_LEARN:
-      if(verbose) cout << "Switching to Learning mode" << endl;
+      Msg("Switching to Learning mode");
       mode=m;
       break;
     default:
-      if(verbose) cout << "Unknown game mode " << m << endl;
+      Msg("Unknown game mode");
       break;
   }
 }
@@ -125,7 +125,7 @@ void GameData::processLearned() {
   if(verbose) cout << "Identified " << possible_modules.size() << " possible modules" << endl;
   for(vector<Module>::iterator it = possible_modules.begin(); it != possible_modules.end(); ++it) {
     if(it->confidence() > CONFIDENCE_THRESHOLD) {
-      if(verbose) cout << "ID: " << it->getArbId() << " Looks like a UDS compliant module" << endl;
+      if(verbose) cout << "ID: " << hex << it->getArbId() << " Looks like a UDS compliant module" << endl;
       modules.push_back(*it);
     }
   } 
@@ -151,8 +151,9 @@ void GameData::processLearned() {
        }
      }
   }
-  if(verbose) cout << "Identified " << GameData::get_active_modules().size() << " Active modules" << endl;
-
+  stringstream m;
+  m << "Identified " << GameData::get_active_modules().size() << " Active modules";
+  GameData::Msg(m.str());
 }
 
 string GameData::frame2string(canfd_frame *cf) {
@@ -163,4 +164,26 @@ string GameData::frame2string(canfd_frame *cf) {
     pkt << setfill('0') << setw(2) << hex << (int)cf->data[i];
   }
   return pkt.str();
+}
+
+void GameData::Msg(string mesg) {
+  if(_gui == NULL) return;
+  _gui->Msg(mesg);
+}
+
+bool GameData::SaveConfig() {
+  ofstream configFile;
+  configFile.open("config_data.cfg");
+  // Globals
+  // Modules
+  configFile << endl;
+  vector<Module *>modules = GameData::get_active_modules();
+  for(vector<Module *>::iterator it = modules.begin(); it != modules.end(); ++it) {
+    Module *mod = *it;
+    configFile << "[" << hex << mod->getArbId() << "]" << endl;
+    configFile << "pos = " << dec << mod->getX() << "," << mod->getY() << endl;
+  }
+  configFile.close();
+  Msg("Saved config_data.cfg");
+  return true;
 }

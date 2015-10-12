@@ -54,6 +54,7 @@ int main(int argc, char *argv[]) {
   gui.setVerbose(verbose);
   res=gui.Init();
   if(res < 0) exit(3);
+  gd.setGUI(&gui);
 
   gd.setVerbose(verbose);
   while(running) {
