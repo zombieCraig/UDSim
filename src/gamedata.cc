@@ -187,3 +187,19 @@ bool GameData::SaveConfig() {
   Msg("Saved config_data.cfg");
   return true;
 }
+
+int string2hex(string s) {
+  stringstream ss;
+  int h;
+  ss << hex << s;
+  ss >> h;
+  return h;
+}
+
+int string2int(string s) {
+  stringstream ss;
+  int i;
+  ss << dec << s;
+  ss >> i;
+  return i;
+}

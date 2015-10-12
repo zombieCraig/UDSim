@@ -8,6 +8,7 @@
 #include "logparser.h"
 #include "can.h"
 #include "canframe.h"
+#include "configparser.h"
 
 #define VERSION "0.1"
 

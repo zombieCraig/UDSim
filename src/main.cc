@@ -22,6 +22,7 @@ int main(int argc, char *argv[]) {
   bool process_log = false;
   Gui gui;
   LogParser log;
+  ConfigParser conf;
 
   cout << "UDSim " << VERSION << endl;
 
@@ -31,6 +32,9 @@ int main(int argc, char *argv[]) {
         verbose++;
         break;
       case 'c':
+        if(!conf.parse(optarg)) {
+          exit(10);
+        }
         break;
       case 'l':
         log.setLogFile(optarg);

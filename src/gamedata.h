@@ -41,6 +41,8 @@ class GameData
     void setGUI(Gui *g) { _gui = g; }
     void Msg(string);
     bool SaveConfig();
+    int string2hex(string);
+    int string2dex(string);
   private:
     void HandleSim(canfd_frame *);
     void LearnPacket(canfd_frame *);
