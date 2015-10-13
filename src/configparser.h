@@ -15,6 +15,7 @@ extern GameData gd;
 
 #define CONF_STATE_GLOBALS 0
 #define CONF_STATE_MODULE  1
+#define CONF_STATE_PACKETS 2
 
 class ConfigParser {
   public:

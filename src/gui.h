@@ -30,11 +30,21 @@ using namespace std;
 #define TOOLBAR_REGION_Y 0
 #define TOOLBAR_REGION_H 50
 #define TOOLBAR_REGION_W 270
+// Status region
+#define STATUS_REGION_X 2
+#define STATUS_REGION_Y 466
+#define STATUS_REGION_H 20
+#define STATUS_REGION_W 240
 // Save Icon
 #define ICON_SAVE_X 453
 #define ICON_SAVE_Y 0
 #define ICON_SAVE_H 50
 #define ICON_SAVE_W 50
+// Mode Icon
+#define ICON_MODE_X 506
+#define ICON_MODE_Y 0
+#define ICON_MODE_H 50
+#define ICON_MODE_W 50
 
 class GameData;
 
@@ -56,6 +66,7 @@ class Gui {
   string getFontPath() { return font_path; }
   SDL_Surface *load_image(string);
   TTF_Font *load_font(string, int);
+  void setStatus(string);
   void Redraw();
   int HandleEvents();
   void Msg(string);
@@ -64,6 +75,7 @@ class Gui {
   void DrawModules();
   void DrawLog();
   void DrawToolbar();
+  void DrawStatus();
   void HandleMouseMotions(SDL_MouseMotionEvent);
   void HandleMouseClick(SDL_MouseButtonEvent);
   bool isOverCarRegion(int, int);
@@ -74,12 +86,14 @@ class Gui {
   string data_path;
   string font_path;
   IconButton *saveButton = NULL;
+  IconButton *modeButton = NULL;
   SDL_Texture *logbuff[MAX_LOG_ENTRIES];
   SDL_Window *window = NULL;
   SDL_Surface *screen = NULL;
   SDL_Renderer *renderer = NULL;
   SDL_Texture *base_texture = NULL;
   SDL_Texture *module_texture = NULL;
+  SDL_Texture *_status;
   SDL_Event event;
   TTF_Font *module_ttf = NULL;
   TTF_Font *log_ttf = NULL;

@@ -35,6 +35,7 @@ void GameData::setMode(int m) {
   switch(m) {
     case MODE_SIM:
       Msg("Switching to Simulator mode");
+      if(_gui) _gui->setStatus("Simulation Mode");
       if(mode == MODE_LEARN) { // Previous mode was learning, update
         Msg("Normalizing learned data");
         GameData::processLearned();
@@ -43,6 +44,12 @@ void GameData::setMode(int m) {
       break;
     case MODE_LEARN:
       Msg("Switching to Learning mode");
+      if(_gui) _gui->setStatus("Learning Mode");
+      mode=m;
+      break;
+    case MODE_ATTACK:
+      Msg("Switching to Attack mode");
+      if(_gui) _gui->setStatus("Attack Mode");
       mode=m;
       break;
     default:
@@ -135,18 +142,18 @@ void GameData::processLearned() {
      if(it->isResponder() == false) {
        responder = GameData::get_module(it->getArbId() + 0x300);
        if(responder) { // GM style positive response
-         it->setPositiveResponse(responder);
+         it->setPositiveResponderID(responder->getArbId());
          responder->setResponder(true);
        }
        responder = GameData::get_module(it->getArbId() + 0x400);
        if(responder) { // GM style negative response
-         it->setNegativeResponse(responder);
+         it->setNegativeResponderID(responder->getArbId());
          responder->setResponder(true);
        }
        responder = GameData::get_module(it->getArbId() + 0x08);
        if(responder) { // Standard response
-         it->setPositiveResponse(responder);
-         it->setNegativeResponse(responder);
+         it->setPositiveResponderID(responder->getArbId());
+         it->setNegativeResponderID(responder->getArbId());
          responder->setResponder(true);
        }
      }
@@ -177,18 +184,42 @@ bool GameData::SaveConfig() {
   // Globals
   // Modules
   configFile << endl;
-  vector<Module *>modules = GameData::get_active_modules();
-  for(vector<Module *>::iterator it = modules.begin(); it != modules.end(); ++it) {
-    Module *mod = *it;
-    configFile << "[" << hex << mod->getArbId() << "]" << endl;
-    configFile << "pos = " << dec << mod->getX() << "," << mod->getY() << endl;
+  for(vector<Module>::iterator it = modules.begin(); it != modules.end(); ++it) {
+    configFile << "[" << hex << it->getArbId() << "]" << endl;
+    configFile << "pos = " << dec << it->getX() << "," << it->getY() << endl;
+    configFile << "responder = " << it->isResponder() << endl;
+    if(!it->isResponder()) {
+      configFile << "possitiveID = " << hex << it->getPositiveResponder() << endl;
+      configFile << "negativeID = " << hex << it->getNegativeResponder() << endl;
+    }
+    configFile << "{Packets}" << endl;
+    vector <CanFrame *>frames = it->getHistory();
+    for(vector<CanFrame *>::iterator it2 = frames.begin(); it2 != frames.end(); ++it2) {
+      CanFrame *frame = *it2;
+      configFile << frame->str() << endl;
+    }
+    configFile << endl;
   }
   configFile.close();
   Msg("Saved config_data.cfg");
   return true;
 }
 
-int string2hex(string s) {
+void GameData::nextMode() {
+  switch(mode) {
+    case MODE_SIM:
+      GameData::setMode(MODE_LEARN);
+      break;
+    case MODE_LEARN:
+      GameData::setMode(MODE_ATTACK);
+      break;
+    case MODE_ATTACK:
+      GameData::setMode(MODE_SIM);
+      break;
+  }
+}
+
+int GameData::string2hex(string s) {
   stringstream ss;
   int h;
   ss << hex << s;
@@ -196,7 +227,7 @@ int string2hex(string s) {
   return h;
 }
 
-int string2int(string s) {
+int GameData::string2int(string s) {
   stringstream ss;
   int i;
   ss << dec << s;

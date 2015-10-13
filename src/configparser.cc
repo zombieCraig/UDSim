@@ -34,13 +34,22 @@ bool ConfigParser::parse(string config) {
         ss << hex << line;
         ss >> id;
         if(id > 0) {
-          if(_state == CONF_STATE_MODULE) {
+          if(_state == CONF_STATE_MODULE || _state == CONF_STATE_PACKETS) {
             // Finished a module, add it
             gd.modules.push_back(*mod);
           }
           _state = CONF_STATE_MODULE;
           mod = new Module(id);
           ss.clear();
+        }
+      }
+      if(line == "{Packets}") _state = CONF_STATE_PACKETS;
+      pos = line.find('#');
+      if(pos != string::npos) {
+        switch(_state) {
+          case CONF_STATE_PACKETS:
+            mod->addPacket(line);
+            break;
         }
       }
       pos = line.find('=');
@@ -56,7 +65,7 @@ bool ConfigParser::parse(string config) {
       }
     }
   }
-  if(_state == CONF_STATE_MODULE) {
+  if(_state == CONF_STATE_MODULE || _state == CONF_STATE_PACKETS) {
     // Add final module
     gd.modules.push_back(*mod);
   }
@@ -71,19 +80,29 @@ void ConfigParser::parseGlobals(string line) {
 void ConfigParser::parseModule(Module *mod, string line, int pos) {
   stringstream ss;
   string field, value;
-  int x,y;
+  int x,y, id;
+  bool responder;
   char d1; // dummy
   field = line;
   value = line;
   field.erase(pos - 1, string::npos);
   value.erase(0, pos + 1);
+  ss << value;
   if(field == "pos") {
-    ss << value;
     ss >> x >> d1 >> y;
-    ss.clear();
     mod->setX(x);
     mod->setY(y);
+  } else if(field == "responder") {
+    ss >> responder;
+    mod->setResponder(responder);
+  } else if(field == "positiveID") {
+    id = gd.string2hex(value);
+    mod->setPositiveResponderID(id);
+  } else if(field == "negativeID") {
+    id = gd.string2hex(value);
+    mod->setNegativeResponderID(id);
   } else {
     cout << "config error: Unknown field " << field << endl;
   }
+  ss.clear();
 }

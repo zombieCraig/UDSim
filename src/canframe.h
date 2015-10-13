@@ -15,6 +15,7 @@ using namespace std;
 class CanFrame {
   public:
     CanFrame(struct canfd_frame *);
+    CanFrame(string);
     ~CanFrame();
     unsigned int can_id;
     unsigned char len;

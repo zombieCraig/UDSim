@@ -13,8 +13,9 @@
 
 using namespace std;
 
-#define MODE_SIM   0
-#define MODE_LEARN 1
+#define MODE_SIM    0
+#define MODE_LEARN  1
+#define MODE_ATTACK 2
 
 #define CONFIDENCE_THRESHOLD 0.6 // 60%
 
@@ -41,8 +42,9 @@ class GameData
     void setGUI(Gui *g) { _gui = g; }
     void Msg(string);
     bool SaveConfig();
+    void nextMode();
     int string2hex(string);
-    int string2dex(string);
+    int string2int(string);
   private:
     void HandleSim(canfd_frame *);
     void LearnPacket(canfd_frame *);

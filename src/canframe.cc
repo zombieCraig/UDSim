@@ -7,6 +7,37 @@ CanFrame::CanFrame(struct canfd_frame *cf) {
   for(i=0; i < 8; i++) { data[i] = cf->data[i]; }
 }
 
+// Expects format 123#010203
+CanFrame::CanFrame(string packet) {
+  int i,pos;
+  stringstream ss;
+  string idstr, data, byte;
+  pos = packet.find('#');
+  if(pos != string::npos) {
+     idstr = packet;
+     data = packet;
+     idstr.erase(pos-1, string::npos);
+     data.erase(0, pos+1);   
+     ss << hex << idstr;
+     ss >> can_id;
+     ss.clear();
+     if(!data.empty()) {
+       len = data.size() / 2;
+       if(len > 8) len = 8;
+       for(i=0; i < len; i++) {
+         byte = data;
+         if(i > 0) byte.erase(0, i*2);
+         if(i < 7) byte.erase((i*2)+2, string::npos);
+         ss << hex << byte;
+         ss >> data[i];
+         ss.clear();
+       }
+     } else {
+       len = 0;
+     }
+  }
+}
+
 CanFrame::~CanFrame() {
 
 }

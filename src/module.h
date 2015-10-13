@@ -33,11 +33,16 @@ class Module
   int getMissedISOTP() { return missed_isotp; }
   void setPaddingByte(char b) {padding = true; padding_byte = b; }
   float confidence();
-  void setPositiveResponse(Module *m) { positive_responder = m; }
-  void setNegativeResponse(Module *m) { negative_responder = m; }
+  void setPositiveResponderID(int i) { positive_responder_id = i; }
+  int getPositiveResponder() { return positive_responder_id; }
+  void setNegativeResponderID(int i) { negative_responder_id = i; }
+  int getNegativeResponder() { return negative_responder_id; }
   void setResponder(bool v) { responder = v; }
   bool isResponder() { return responder; }
   void addPacket(struct canfd_frame *);
+  void addPacket(string);
+  vector <CanFrame *>getHistory() { return can_history; }
+  vector <CanFrame *>getPacketsByBytePos(unsigned int, unsigned char);
   int getState();
   void setState(int s) { state = s; }
   int getX() { return _x; }
@@ -58,8 +63,8 @@ class Module
   int _y = 0;
   SDL_Texture *id_texture = NULL;
   vector<CanFrame *>can_history;
-  Module *positive_responder = NULL;
-  Module *negative_responder = NULL;
+  int positive_responder_id = -1;
+  int negative_responder_id = -1;
 };
 
 #endif
