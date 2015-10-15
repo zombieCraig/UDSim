@@ -54,6 +54,10 @@ int main(int argc, char *argv[]) {
   }
 
   gd.setCan(new Can(argv[optind]));
+  if(!gd.getCan()->Init()) {
+    cout << "Failed to initialize CAN.  Aborting." << endl;
+    return 20;
+  }
 
   gui.setVerbose(verbose);
   res=gui.Init();
@@ -71,6 +75,8 @@ int main(int argc, char *argv[]) {
       } else {
        gui.Msg(log.processNext());
       }
+    } else {
+      gd.processCan();
     }
   }
 

@@ -21,6 +21,9 @@ class CanFrame {
     unsigned char len;
     unsigned char data[8];
     string str();
+    struct canfd_frame *toFrame();
+  private:
+    struct canfd_frame *_cf = NULL;
 };
 
 #endif

@@ -43,6 +43,7 @@ class GameData
     void Msg(string);
     bool SaveConfig();
     void nextMode();
+    void processCan();
     int string2hex(string);
     int string2int(string);
   private:
@@ -52,8 +53,8 @@ class GameData
     void processLearned();
     int mode = MODE_SIM;
     int verbose = 0;
-    Can *canif;
-    Gui *_gui;
+    Can *canif = NULL;
+    Gui *_gui = NULL;
 };
 
 #endif

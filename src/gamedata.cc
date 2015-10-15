@@ -50,6 +50,10 @@ void GameData::setMode(int m) {
     case MODE_ATTACK:
       Msg("Switching to Attack mode");
       if(_gui) _gui->setStatus("Attack Mode");
+      if(mode == MODE_LEARN) { // Previous mode was learning, update
+        Msg("Normalizing learned data");
+        GameData::processLearned();
+      }
       mode=m;
       break;
     default:
@@ -65,6 +69,8 @@ void GameData::processPkt(canfd_frame *cf) {
       break;
     case MODE_LEARN:
       GameData::LearnPacket(cf);
+      break;
+    case MODE_ATTACK:
       break;
     default:
       cout << "ERROR: Processing packets while in an unknown mode" << mode << endl;
@@ -233,4 +239,14 @@ int GameData::string2int(string s) {
   ss << dec << s;
   ss >> i;
   return i;
+}
+
+void GameData::processCan() {
+  if(!canif) return;
+  vector <CanFrame *>frames = canif->getPackets();
+  for(vector <CanFrame *>::iterator it=frames.begin(); it != frames.end(); ++it) {
+    CanFrame *pkt = *it;
+    if(verbose) Msg(pkt->str());
+    GameData::processPkt(pkt->toFrame());
+  }
 }

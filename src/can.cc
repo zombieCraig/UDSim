@@ -105,3 +105,75 @@ unsigned char Can::asc2nibble(char c) {
         return 16; /* error */
 }
 
+bool Can::Init() {
+  struct ifreq ifr;
+
+  // Create a new raw CAN socket
+  _canfd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+  if(_canfd < 0) {
+    cout << "Can not initialize a raw CAN socket" << endl;
+    return false;
+  }
+
+  _addr.can_family = AF_CAN;
+  memset(&ifr.ifr_name, 0, sizeof(ifr.ifr_name));
+  strncpy(ifr.ifr_name, ifname.c_str(), ifname.size());
+  if (ioctl(_canfd, SIOCGIFINDEX, &ifr) < 0) {
+    perror("SIOCGIFINDEX");
+    return false;
+  }
+  _addr.can_ifindex = ifr.ifr_ifindex;
+
+  if (bind(_canfd, (struct sockaddr *)&_addr, sizeof(_addr)) < 0) {
+        perror("bind");
+        false;
+  }
+  return true;
+}
+
+/* This currently only returns one packet but we set it up this
+ * way in case we want to do buffering in the future */
+vector <CanFrame *>Can::getPackets() {
+  vector <CanFrame *>packets;
+  struct iovec iov;
+  struct msghdr msg;
+  struct canfd_frame frame;
+  int ret, nbytes;
+  fd_set rdfs;
+  char ctrlmsg[CMSG_SPACE(sizeof(struct timeval)) + CMSG_SPACE(sizeof(__u32))];
+  struct timeval timeo;
+
+  iov.iov_base = &frame;
+  iov.iov_len = sizeof(frame);
+  msg.msg_name = &_addr;
+  msg.msg_namelen = sizeof(_addr);
+  msg.msg_iov = &iov;
+  msg.msg_iovlen = 1;
+  msg.msg_control = &ctrlmsg;
+  msg.msg_controllen = sizeof(ctrlmsg);
+  msg.msg_flags = 0;
+
+    FD_ZERO(&rdfs);
+    FD_SET(_canfd, &rdfs);
+    timeo.tv_sec  = 0;
+    timeo.tv_usec = 10000 * 20; // 20 ms  
+
+    if ((ret = select(_canfd+1, &rdfs, NULL, NULL, &timeo)) < 0) {
+      cout << "Error: Interface is probably down" << endl;
+      return packets;
+    }
+    if (FD_ISSET(_canfd, &rdfs)) {
+      nbytes = recvmsg(_canfd, &msg, 0);
+      if (nbytes < 0) {
+        perror("read");
+        return packets;
+      }
+      if ((size_t)nbytes != CAN_MTU) {
+        fprintf(stderr, "read: incomplete CAN frame\n");
+        return packets;
+      }
+      packets.push_back(new CanFrame(&frame));
+    }
+
+  return packets;
+}

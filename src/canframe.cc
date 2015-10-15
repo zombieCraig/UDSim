@@ -4,7 +4,8 @@ CanFrame::CanFrame(struct canfd_frame *cf) {
   int i;
   can_id = cf->can_id;
   len = cf->len;
-  for(i=0; i < 8; i++) { data[i] = cf->data[i]; }
+  for(i=0; i < len; i++) { data[i] = cf->data[i]; }
+  _cf = cf;
 }
 
 // Expects format 123#010203
@@ -39,7 +40,7 @@ CanFrame::CanFrame(string packet) {
 }
 
 CanFrame::~CanFrame() {
-
+  free(_cf);
 }
 
 string CanFrame::str() {
@@ -50,4 +51,17 @@ string CanFrame::str() {
     pkt << setfill('0') << setw(2) << hex << (int)data[i];
   }
   return pkt.str();
+}
+
+struct canfd_frame *CanFrame::toFrame() {
+  int i;
+  if (_cf == NULL) {
+    _cf = (struct canfd_frame *)malloc(sizeof(struct canfd_frame));
+    _cf->can_id = can_id;
+    _cf->len = len;
+    for(i=0; i < len; i++) {
+      _cf->data[i] = data[i];
+    }
+  }
+  return _cf;
 }
