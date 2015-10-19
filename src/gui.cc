@@ -19,7 +19,7 @@ Gui::~Gui() {
 }
 
 int Gui::Init() {
-  SDL_Surface *base_image, *module_image, *icon_save_image, *icon_mode_image;
+  SDL_Surface *base_image, *module_image, *module_unk_image,  *icon_save_image, *icon_mode_image;
   if(SDL_Init ( SDL_INIT_VIDEO ) < 0 ) {
         printf("SDL Could not initializes\n");
         return(-1);
@@ -35,10 +35,13 @@ int Gui::Init() {
   renderer = SDL_CreateRenderer(window, -1, 0);
   base_image = Gui::load_image("udsbg.png");
   module_image = Gui::load_image("module.png");
+  module_unk_image = Gui::load_image("module-unk.png");
   icon_save_image = Gui::load_image("save_icon.png");
   icon_mode_image = Gui::load_image("mode_icon.png");
   base_texture = SDL_CreateTextureFromSurface(renderer, base_image);
   module_texture = SDL_CreateTextureFromSurface(renderer, module_image);
+  module_unk_texture = SDL_CreateTextureFromSurface(renderer, module_unk_image);
+  SDL_FreeSurface(module_unk_image);
   SDL_FreeSurface(module_image);
   SDL_FreeSurface(base_image);
   // Toolbar
@@ -79,7 +82,14 @@ void Gui::DrawModules() {
   char id_buf[16];
   int state;
   Module *selected = NULL;
-  vector <Module *>modules = gd.get_active_modules();
+  SDL_Texture *module_color = NULL;
+  vector <Module *>modules;
+
+  if(gd.getMode() == MODE_LEARN) {
+    modules = gd.get_possible_active_modules();
+  } else {
+    modules = gd.get_active_modules();
+  }
   update.x = 0;
   update.y = 0;
   update.w = MODULE_W;
@@ -106,39 +116,45 @@ void Gui::DrawModules() {
       mod->setIdTexture(SDL_CreateTextureFromSurface(renderer, font));
       SDL_FreeSurface(font);
     }
-    state = mod->getState();
-    switch(state) {
-      case STATE_IDLE:
-        update.x = 0;
-        SDL_RenderCopy(renderer, module_texture, &update, &pos);
-        SDL_QueryTexture(mod->getIdTexture(), NULL, NULL, &pos.w, &pos.h);
-        pos.x += (MODULE_W / 2) - (pos.w / 2) + 2;
-        pos.y += (MODULE_H / 2) - (pos.h / 2);
-        SDL_RenderCopy(renderer, mod->getIdTexture(), NULL, &pos);
-        break;
-      case STATE_ACTIVE:
-        update.x = MODULE_W;
-        SDL_RenderCopy(renderer, module_texture, &update, &pos);
-        SDL_QueryTexture(mod->getIdTexture(), NULL, NULL, &pos.w, &pos.h);
-        pos.x += (MODULE_W / 2) - (pos.w / 2) + 2;
-        pos.y += (MODULE_H / 2) - (pos.h / 2);
-        SDL_RenderCopy(renderer, mod->getIdTexture(), NULL, &pos);
-        break;
-      case STATE_MOUSEOVER:
-        update.x = MODULE_W * 2;
-        SDL_RenderCopy(renderer, module_texture, &update, &pos);
-        SDL_QueryTexture(mod->getIdTexture(), NULL, NULL, &pos.w, &pos.h);
-        pos.x += (MODULE_W / 2) - (pos.w / 2) + 2;
-        pos.y += (MODULE_H / 2) - (pos.h / 2);
-        SDL_RenderCopy(renderer, mod->getIdTexture(), NULL, &pos);
-        break;
-      case STATE_SELECTED:
-        /* Draw selected last in case dragged over another module */
-        selected = mod;
-        break;
-      default:
-        break;
-    }
+      if(mod->getPositiveResponder() > 0 && mod->getNegativeResponder() > 0) {
+        module_color = module_texture;
+      } else {
+        module_color = module_unk_texture;
+      }
+      state = mod->getState();
+      switch(state) {
+        case STATE_IDLE:
+          update.x = 0;
+          SDL_RenderCopy(renderer, module_color, &update, &pos);
+          SDL_QueryTexture(mod->getIdTexture(), NULL, NULL, &pos.w, &pos.h);
+          pos.x += (MODULE_W / 2) - (pos.w / 2) + 2;
+          pos.y += (MODULE_H / 2) - (pos.h / 2);
+          SDL_RenderCopy(renderer, mod->getIdTexture(), NULL, &pos);
+          break;
+        case STATE_ACTIVE:
+          update.x = MODULE_W;
+          SDL_RenderCopy(renderer, module_color, &update, &pos);
+          SDL_QueryTexture(mod->getIdTexture(), NULL, NULL, &pos.w, &pos.h);
+          pos.x += (MODULE_W / 2) - (pos.w / 2) + 2;
+          pos.y += (MODULE_H / 2) - (pos.h / 2);
+          SDL_RenderCopy(renderer, mod->getIdTexture(), NULL, &pos);
+          mod->setState(STATE_IDLE);
+          break;
+        case STATE_MOUSEOVER:
+          update.x = MODULE_W * 2;
+          SDL_RenderCopy(renderer, module_color, &update, &pos);
+          SDL_QueryTexture(mod->getIdTexture(), NULL, NULL, &pos.w, &pos.h);
+          pos.x += (MODULE_W / 2) - (pos.w / 2) + 2;
+          pos.y += (MODULE_H / 2) - (pos.h / 2);
+          SDL_RenderCopy(renderer, mod->getIdTexture(), NULL, &pos);
+          break;
+        case STATE_SELECTED:
+          /* Draw selected last in case dragged over another module */
+          selected = mod;
+          break;
+        default:
+          break;
+      }
   }
   if(selected) {
     update.x = MODULE_W * 3;
@@ -146,7 +162,12 @@ void Gui::DrawModules() {
     pos.y = selected->getY();
     pos.w = MODULE_W;
     pos.h = MODULE_H;
-    SDL_RenderCopy(renderer, module_texture, &update, &pos);
+    if(selected->getPositiveResponder() >0 && selected->getNegativeResponder() > 0) {
+      module_color = module_texture;
+    } else {
+      module_color = module_unk_texture;
+    }
+    SDL_RenderCopy(renderer, module_color, &update, &pos);
     SDL_QueryTexture(selected->getIdTexture(), NULL, NULL, &pos.w, &pos.h);
     pos.x += (MODULE_W / 2) - (pos.w / 2) + 2;
     pos.y += (MODULE_H / 2) - (pos.h / 2);
@@ -385,6 +406,7 @@ void Gui::DrawStatus() {
   if(_status == NULL) return;
   mrect.x = 0;
   mrect.y = 0;
+  if(_status == NULL) return;
   SDL_QueryTexture(_status, NULL, NULL, &mrect.w, &mrect.h);
   if(mrect.w > srect.w) mrect.w = srect.w;
   if(mrect.h > srect.h) mrect.h = srect.h;

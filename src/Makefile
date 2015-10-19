@@ -1,6 +1,6 @@
 CC=g++
 CFLAGS=-ggdb -std=gnu++11 -MMD -MP -I/usr/include/SDL2 -Iinclude 
-LDFLAGS=-lSDL2 -lSDL2_image -lSDL2_ttf
+LDFLAGS=-lSDL2 -lSDL2_image -lSDL2_ttf -ggdb
 OBJS=main.o gui.o logparser.o module.o gamedata.o can.o canframe.o icon-button.o configparser.o
 DEP         := $(OBJS:.o=.d)
 

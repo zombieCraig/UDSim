@@ -23,6 +23,15 @@ vector <Module *> GameData::get_active_modules() {
   return active_modules;
 }
 
+/* Same as get_active_modules but designed for learning mode */
+vector <Module *> GameData::get_possible_active_modules() {
+  vector<Module *> possible_active_modules;
+  for(vector<Module>::iterator it = possible_modules.begin(); it != possible_modules.end(); ++it) {
+    if(it->isResponder() == false) possible_active_modules.push_back(&*it);
+  }  
+  return possible_active_modules;
+}
+
 
 Module *GameData::get_possible_module(int id) {
   for(vector<Module>::iterator it = possible_modules.begin(); it != possible_modules.end(); ++it) {
@@ -41,6 +50,7 @@ void GameData::setMode(int m) {
         GameData::processLearned();
       }
       mode=m;
+      if(_gui) _gui->DrawModules();
       break;
     case MODE_LEARN:
       Msg("Switching to Learning mode");
@@ -55,6 +65,7 @@ void GameData::setMode(int m) {
         GameData::processLearned();
       }
       mode=m;
+      if(_gui) _gui->DrawModules();
       break;
     default:
       Msg("Unknown game mode");
@@ -102,9 +113,12 @@ void GameData::LearnPacket(canfd_frame *cf) {
         module->incMissedISOTP();
       }
     }
+    module->setState(STATE_ACTIVE);
+    if(_gui) _gui->DrawModules();
   } else if(possible_module) { // Haven't seen this ID yet
     possible_module->addPacket(cf);
     possible_modules.push_back(*possible_module);
+    if(_gui) _gui->DrawModules();
   }
 }
 
@@ -167,10 +181,14 @@ void GameData::processLearned() {
   stringstream m;
   m << "Identified " << GameData::get_active_modules().size() << " Active modules";
   GameData::Msg(m.str());
+  possible_modules.clear();
 }
 
 string GameData::frame2string(canfd_frame *cf) {
   stringstream pkt;
+  if(cf->len < 0 || cf->len > 8) { 
+    return "ERROR: CAN packet with imporoper length";
+  }
   pkt << hex << cf->can_id << CANID_DELIM;
   int i;
   for(i=0; i < cf->len; i++) {
@@ -195,8 +213,8 @@ bool GameData::SaveConfig() {
     configFile << "pos = " << dec << it->getX() << "," << it->getY() << endl;
     configFile << "responder = " << it->isResponder() << endl;
     if(!it->isResponder()) {
-      configFile << "possitiveID = " << hex << it->getPositiveResponder() << endl;
-      configFile << "negativeID = " << hex << it->getNegativeResponder() << endl;
+      if(it->getPositiveResponder() != -1) configFile << "possitiveID = " << hex << it->getPositiveResponder() << endl;
+      if(it->getNegativeResponder() != -1) configFile << "negativeID = " << hex << it->getNegativeResponder() << endl;
     }
     configFile << "{Packets}" << endl;
     vector <CanFrame *>frames = it->getHistory();
@@ -242,11 +260,18 @@ int GameData::string2int(string s) {
 }
 
 void GameData::processCan() {
+  struct canfd_frame cf;
+  int i;
   if(!canif) return;
   vector <CanFrame *>frames = canif->getPackets();
   for(vector <CanFrame *>::iterator it=frames.begin(); it != frames.end(); ++it) {
     CanFrame *pkt = *it;
     if(verbose) Msg(pkt->str());
-    GameData::processPkt(pkt->toFrame());
+    cf.can_id = pkt->can_id;
+    cf.len = pkt->len;
+    for(i=0; i < pkt->len; i++) {
+      cf.data[i] = pkt->data[i];
+    }
+    GameData::processPkt(&cf);
   }
 }

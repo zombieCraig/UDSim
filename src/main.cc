@@ -64,6 +64,8 @@ int main(int argc, char *argv[]) {
   if(res < 0) exit(3);
   gd.setGUI(&gui);
 
+  if(!process_log) gd.setMode(MODE_SIM);
+
   gd.setVerbose(verbose);
   while(running) {
     running = gui.HandleEvents();

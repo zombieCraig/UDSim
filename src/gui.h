@@ -68,14 +68,14 @@ class Gui {
   TTF_Font *load_font(string, int);
   void setStatus(string);
   void Redraw();
-  int HandleEvents();
-  void Msg(string);
-
-  private:
   void DrawModules();
   void DrawLog();
   void DrawToolbar();
   void DrawStatus();
+  int HandleEvents();
+  void Msg(string);
+
+  private:
   void HandleMouseMotions(SDL_MouseMotionEvent);
   void HandleMouseClick(SDL_MouseButtonEvent);
   bool isOverCarRegion(int, int);
@@ -93,7 +93,8 @@ class Gui {
   SDL_Renderer *renderer = NULL;
   SDL_Texture *base_texture = NULL;
   SDL_Texture *module_texture = NULL;
-  SDL_Texture *_status;
+  SDL_Texture *module_unk_texture = NULL;
+  SDL_Texture *_status = NULL;
   SDL_Event event;
   TTF_Font *module_ttf = NULL;
   TTF_Font *log_ttf = NULL;
