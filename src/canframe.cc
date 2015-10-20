@@ -39,6 +39,9 @@ CanFrame::CanFrame(string packet) {
   }
 }
 
+CanFrame::CanFrame() {
+}
+
 CanFrame::~CanFrame() {
   free(_cf);
 }

@@ -9,6 +9,9 @@ Gui::Gui() {
 }
 
 Gui::~Gui() {
+  SDL_DestroyTexture(check_texture);
+  SDL_DestroyTexture(info_card_texture);
+  SDL_DestroyTexture(module_unk_texture);
   SDL_DestroyTexture(module_texture);
   SDL_DestroyTexture(base_texture);
   SDL_DestroyRenderer(renderer);
@@ -19,7 +22,8 @@ Gui::~Gui() {
 }
 
 int Gui::Init() {
-  SDL_Surface *base_image, *module_image, *module_unk_image,  *icon_save_image, *icon_mode_image;
+  SDL_Surface *base_image, *module_image, *module_unk_image,  *icon_save_image, *icon_mode_image, *info_card_image;
+  SDL_Surface *check_image;
   if(SDL_Init ( SDL_INIT_VIDEO ) < 0 ) {
         printf("SDL Could not initializes\n");
         return(-1);
@@ -38,9 +42,15 @@ int Gui::Init() {
   module_unk_image = Gui::load_image("module-unk.png");
   icon_save_image = Gui::load_image("save_icon.png");
   icon_mode_image = Gui::load_image("mode_icon.png");
+  info_card_image = Gui::load_image("infocard.png");
+  check_image = Gui::load_image("check.png");
   base_texture = SDL_CreateTextureFromSurface(renderer, base_image);
   module_texture = SDL_CreateTextureFromSurface(renderer, module_image);
   module_unk_texture = SDL_CreateTextureFromSurface(renderer, module_unk_image);
+  info_card_texture = SDL_CreateTextureFromSurface(renderer, info_card_image);
+  check_texture = SDL_CreateTextureFromSurface(renderer, check_image);
+  SDL_FreeSurface(check_image);
+  SDL_FreeSurface(info_card_image);
   SDL_FreeSurface(module_unk_image);
   SDL_FreeSurface(module_image);
   SDL_FreeSurface(base_image);
@@ -59,6 +69,7 @@ int Gui::Init() {
     return -3;
   }
   log_ttf = Gui::load_font("FreeSans.ttf", 12);
+  title_ttf = Gui::load_font("Coluna_Rounded.otf", 22);
   Gui::Redraw();
   return 0;
 }
@@ -75,7 +86,7 @@ TTF_Font *Gui::load_font(string fontname, int size) {
   return TTF_OpenFontRW(file, 1, size);
 }
 
-void Gui::DrawModules() {
+void Gui::DrawModules(bool force_refresh) {
   SDL_Rect update, pos, car, trect;
   SDL_Color font_color = { 255, 255, 255, 255 };
   SDL_Surface *font = NULL;
@@ -138,7 +149,6 @@ void Gui::DrawModules() {
           pos.x += (MODULE_W / 2) - (pos.w / 2) + 2;
           pos.y += (MODULE_H / 2) - (pos.h / 2);
           SDL_RenderCopy(renderer, mod->getIdTexture(), NULL, &pos);
-          mod->setState(STATE_IDLE);
           break;
         case STATE_MOUSEOVER:
           update.x = MODULE_W * 2;
@@ -173,6 +183,7 @@ void Gui::DrawModules() {
     pos.y += (MODULE_H / 2) - (pos.h / 2);
     SDL_RenderCopy(renderer, selected->getIdTexture(), NULL, &pos);
   }
+  if(force_refresh) SDL_RenderPresent(renderer);
 }
 
 void Gui::DrawToolbar() {
@@ -197,6 +208,7 @@ void Gui::Redraw() {
   Gui::DrawLog();
   Gui::DrawToolbar();
   Gui::DrawStatus();
+  Gui::DrawInfoCard();
   SDL_RenderPresent(renderer);
 }
 
@@ -264,9 +276,22 @@ bool Gui::isOverToolbarRegion(int x, int y) {
   return false;
 }
 
+// Card must be full extended for this to return true
+bool Gui::isOverCardRegion(int x, int y) {
+  bool over_card = false;
+  if(module_selected != -1) {
+    if(Gui::getCardState() == CARD_NOANIM) {
+      if(x > CARD_REGION_X && x < CARD_REGION_X + CARD_REGION_W &&
+         y > CARD_REGION_Y && y < CARD_REGION_Y + CARD_REGION_H) over_card = true;
+    }
+  }
+  return over_card;
+}
+
 void Gui::HandleMouseClick(SDL_MouseButtonEvent button) {
   bool change = false;
   bool change_toolbar = false;
+  bool change_card = false;
   if(button.button == SDL_BUTTON_LEFT) {
     if(button.state == SDL_PRESSED) {
       if(Gui::isOverCarRegion(button.x, button.y)) {
@@ -276,7 +301,18 @@ void Gui::HandleMouseClick(SDL_MouseButtonEvent button) {
           if(button.x > mod->getX() && button.x < mod->getX() + MODULE_W &&
              button.y > mod->getY() && button.y < mod->getY() + MODULE_H) {
                mod->setState(STATE_SELECTED);
+               if(module_selected != mod->getArbId()) {
+                 module_selected = mod->getArbId();
+                 change_card = true;
+                 Gui::AdvanceCard();
+               }
                change = true;
+          }
+        }
+        if(!change) { // No module was clicked.  Unselect info card
+          if(module_selected != -1) {
+            Gui::RetractCard();
+            change_card = true;
           }
         }
       } else if (Gui::isOverToolbarRegion(button.x, button.y)) {
@@ -289,6 +325,14 @@ void Gui::HandleMouseClick(SDL_MouseButtonEvent button) {
           modeButton->setState(ICON_STATE_SELECTED);
           change_toolbar = true;
           gd.nextMode();
+        }
+      } else if (Gui::isOverCardRegion(button.x, button.y)) {
+        // Fake Responses
+        if(button.x > CARD_FAKE_RESP_X && button.x < CARD_FAKE_RESP_X + CARD_FAKE_RESP_W &&
+           button.y > CARD_FAKE_RESP_Y && button.y < CARD_FAKE_RESP_Y + CARD_FAKE_RESP_H) {
+             Module *mod = gd.get_module(module_selected);
+             mod->toggleFakeResponses();
+             change_card = true;
         }
       }
     } else if (button.state == SDL_RELEASED) {
@@ -316,7 +360,8 @@ void Gui::HandleMouseClick(SDL_MouseButtonEvent button) {
   }
   if(change) Gui::DrawModules();
   if(change_toolbar) Gui::DrawToolbar();
-  if(change || change_toolbar) SDL_RenderPresent(renderer);
+  if(change_card) Gui::DrawInfoCard();
+  if(change || change_toolbar || change_card) SDL_RenderPresent(renderer);
 }
 
 int Gui::HandleEvents() {
@@ -414,3 +459,114 @@ void Gui::DrawStatus() {
   srect.h = mrect.h;
   SDL_RenderCopy(renderer, _status, &mrect, &srect);
 }
+
+void Gui::HandleAnimations() {
+  _ticks = SDL_GetTicks();
+  vector <Module *>mods;
+  bool change = false;
+  if(Gui::getCardState() == CARD_ADVANCE || Gui::getCardState() == CARD_RETRACT) {
+    if(_ticks > _lastTicks + _CardAnimationTicks) {
+      if(Gui::getCardState() == CARD_ADVANCE) {
+        _card_current_x+= 10;
+        if(_card_current_x > CARD_REGION_X) {
+          _card_current_x = CARD_REGION_X;
+          Gui::setCardState(CARD_NOANIM);
+        }
+      } else { // Retract
+        _card_current_x-=10;
+        if(_card_current_x < -CARD_REGION_W) {
+          _card_current_x = -CARD_REGION_W;
+          Gui::setCardState(CARD_NOANIM);
+          module_selected = -1;
+        }
+      }
+      _lastTicks = _ticks;
+      Gui::DrawInfoCard();
+      change = true;
+    }
+  }
+  if(gd.getMode() == MODE_LEARN) {
+    mods = gd.get_possible_active_modules();
+  } else {
+    mods = gd.get_active_modules();
+  }
+  for(vector<Module *>::iterator it = mods.begin(); it != mods.end(); ++it) {
+    Module *mod = *it;
+    if(mod->getState() == STATE_ACTIVE) {
+      if(_ticks > mod->getActiveTicks() + ACTIVE_TICK_DELAY) {
+        mod->setState(STATE_IDLE);
+        Gui::DrawModules();
+        change = true;
+      }
+    }
+  }
+  if (change) SDL_RenderPresent(renderer);
+}
+
+void Gui::AdvanceCard() {
+  _card_current_x = -CARD_REGION_W;
+  Gui::setCardState(CARD_ADVANCE);
+}
+
+void Gui::RetractCard() {
+  _card_current_x = CARD_REGION_X;
+  Gui::setCardState(CARD_RETRACT);
+}
+
+/* NOTE: This could be sped up by caching the cards during animations */
+void Gui::DrawInfoCard() {
+  SDL_Color font_color = { 255, 255, 255, 255 };
+  SDL_Surface *title, *detail;
+  SDL_Texture *title_tex, *detail_tex;
+  SDL_Rect srect, titler, detailr, checkr;
+  stringstream ss;
+  char id_buf[16];
+  srect.x = CARD_REGION_X;
+  srect.y = CARD_REGION_Y;
+  srect.h = CARD_REGION_H;
+  srect.w = CARD_REGION_W;
+  if(Gui::getCardState() == CARD_RETRACT) SDL_RenderCopy(renderer, base_texture, &srect, &srect);
+  if(module_selected != -1) {
+    Module *mod = gd.get_module(module_selected);
+    if(mod) {
+      srect.x = _card_current_x;
+      SDL_RenderCopy(renderer, info_card_texture, NULL, &srect);
+      memset(id_buf, 0, 16);
+      snprintf(id_buf, 15, "%02X", mod->getArbId());
+      title = TTF_RenderText_Blended(title_ttf, id_buf, font_color);
+      titler.x = srect.x + 3;
+      titler.y = srect.y + 6;
+      titler.w = title->w;
+      titler.h = title->h;
+      titler.x += ((srect.w - 20) / 2) - (titler.w / 2);
+      title_tex = SDL_CreateTextureFromSurface(renderer, title);
+      SDL_RenderCopy(renderer, title_tex, NULL, &titler);
+      SDL_FreeSurface(title);
+      SDL_DestroyTexture(title_tex);
+      if(mod->getPositiveResponder() == -1 && mod->getNegativeResponder() == -1) {
+        detail = TTF_RenderText_Blended(log_ttf, "No responses (Missing module?)", font_color);
+      } else {
+        if(mod->getPositiveResponder() > -1) ss << " Positive ID: " << hex << mod->getPositiveResponder();
+        if(mod->getNegativeResponder() > -1) ss << " Negative ID: " << hex << mod->getNegativeResponder();
+        detail = TTF_RenderText_Blended(log_ttf, ss.str().c_str(), font_color);
+      }
+      detail_tex = SDL_CreateTextureFromSurface(renderer, detail);
+      detailr.x = srect.x + 3;
+      detailr.y = titler.y + 26;
+      detailr.w = detail->w;
+      detailr.h = detail->h;
+      SDL_RenderCopy(renderer, detail_tex, NULL, &detailr);
+      SDL_FreeSurface(detail);
+      SDL_DestroyTexture(detail_tex);
+      // Options
+      if(mod->getFakeResponses()) {
+        checkr.x = srect.x + CARD_FAKE_RESP_X - 6;
+        checkr.y = CARD_FAKE_RESP_Y - 3;
+        checkr.h = CARD_FAKE_RESP_H;
+        checkr.w = CARD_FAKE_RESP_W;
+        SDL_RenderCopy(renderer, check_texture, NULL, &checkr);
+      }
+    }
+  }
+}
+

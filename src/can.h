@@ -1,6 +1,7 @@
 #ifndef UDS_CAN_H
 #define UDS_CAN_H
 
+#include <unistd.h>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -31,6 +32,7 @@ class Can
     int parse_canframe(char *, struct canfd_frame *);
     unsigned char asc2nibble(char);
     vector <CanFrame *>getPackets();
+    void sendPackets(vector <CanFrame *>);
   private:
     string ifname;
     int _canfd;

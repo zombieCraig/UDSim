@@ -157,7 +157,8 @@ vector <CanFrame *>Can::getPackets() {
     FD_SET(_canfd, &rdfs);
     timeo.tv_sec  = 0;
     //timeo.tv_usec = 10000 * 20; // 20 ms  
-    timeo.tv_usec = 10000 * 1; // 1 ms  
+    //timeo.tv_usec = 10000; // 1 ms  
+    timeo.tv_usec = 0; // Don't wait  
 
     if ((ret = select(_canfd+1, &rdfs, NULL, NULL, &timeo)) < 0) {
       cout << "Error: Interface is probably down" << endl;
@@ -177,4 +178,19 @@ vector <CanFrame *>Can::getPackets() {
     }
 
   return packets;
+}
+
+void Can::sendPackets(vector <CanFrame *>pkts) {
+  struct canfd_frame cf;
+  int i, nbytes;
+  for(vector<CanFrame *>::iterator it = pkts.begin(); it != pkts.end(); ++it) {
+    CanFrame *pkt = *it;
+    cf.can_id = pkt->can_id;
+    cf.len = pkt->len;
+    for(i=0; i < pkt->len; i++) {
+       cf.data[i] = pkt->data[i];
+    }
+    nbytes = write(_canfd, &cf, CAN_MTU);
+    if(nbytes < 0) cout << "ERROR writing CAN packet" << endl;
+  }
 }

@@ -19,7 +19,10 @@ using namespace std;
 
 #define CONFIDENCE_THRESHOLD 0.6 // 60%
 
+#define CAN_DELAY 1000 * 10
+
 class Gui;
+class Module;
 
 class GameData
 {
@@ -54,6 +57,7 @@ class GameData
     void processLearned();
     int mode = MODE_SIM;
     int verbose = 0;
+    int _lastTicks = 0;
     Can *canif = NULL;
     Gui *_gui = NULL;
 };

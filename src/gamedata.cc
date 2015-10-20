@@ -45,7 +45,7 @@ void GameData::setMode(int m) {
     case MODE_SIM:
       Msg("Switching to Simulator mode");
       if(_gui) _gui->setStatus("Simulation Mode");
-      if(mode == MODE_LEARN) { // Previous mode was learning, update
+      if(mode == MODE_LEARN && possible_modules.size() > 0) { // Previous mode was learning, update
         Msg("Normalizing learned data");
         GameData::processLearned();
       }
@@ -60,7 +60,7 @@ void GameData::setMode(int m) {
     case MODE_ATTACK:
       Msg("Switching to Attack mode");
       if(_gui) _gui->setStatus("Attack Mode");
-      if(mode == MODE_LEARN) { // Previous mode was learning, update
+      if(mode == MODE_LEARN && possible_modules.size() > 0) { // Previous mode was learning, update
         Msg("Normalizing learned data");
         GameData::processLearned();
       }
@@ -90,7 +90,17 @@ void GameData::processPkt(canfd_frame *cf) {
 }
 
 void GameData::HandleSim(canfd_frame *cf) {
-
+  Module *module = GameData::get_module(cf->can_id);
+  // Flow control is special
+  if(cf->data[0] == 0x30 && !module) module = GameData::get_module(cf->can_id - 1);
+  if(module) {
+     if(!module->isResponder()) {
+       module->setState(STATE_ACTIVE);
+       if(_gui) _gui->DrawModules(true);
+       vector<CanFrame *>response = module->getResponse(cf);
+       if(!response.empty()) canif->sendPackets(response);
+     }
+  }
 }
 
 void GameData::LearnPacket(canfd_frame *cf) {
@@ -114,7 +124,7 @@ void GameData::LearnPacket(canfd_frame *cf) {
       }
     }
     module->setState(STATE_ACTIVE);
-    if(_gui) _gui->DrawModules();
+    if(_gui) _gui->DrawModules(true);
   } else if(possible_module) { // Haven't seen this ID yet
     possible_module->addPacket(cf);
     possible_modules.push_back(*possible_module);
@@ -263,15 +273,19 @@ void GameData::processCan() {
   struct canfd_frame cf;
   int i;
   if(!canif) return;
-  vector <CanFrame *>frames = canif->getPackets();
-  for(vector <CanFrame *>::iterator it=frames.begin(); it != frames.end(); ++it) {
-    CanFrame *pkt = *it;
-    if(verbose) Msg(pkt->str());
-    cf.can_id = pkt->can_id;
-    cf.len = pkt->len;
-    for(i=0; i < pkt->len; i++) {
-      cf.data[i] = pkt->data[i];
+  int ticks = SDL_GetTicks();
+  if(_lastTicks + CAN_DELAY > ticks) {
+    vector <CanFrame *>frames = canif->getPackets();
+    for(vector <CanFrame *>::iterator it=frames.begin(); it != frames.end(); ++it) {
+      CanFrame *pkt = *it;
+      if(verbose) Msg(pkt->str());
+      cf.can_id = pkt->can_id;
+      cf.len = pkt->len;
+      for(i=0; i < pkt->len; i++) {
+        cf.data[i] = pkt->data[i];
+      }
+      GameData::processPkt(&cf);
     }
-    GameData::processPkt(&cf);
+    _lastTicks = ticks;
   }
 }

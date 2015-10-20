@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <vector>
 #include <net/if.h>
 #include <linux/can.h>
 #include <linux/can/raw.h>
@@ -16,6 +17,7 @@ class CanFrame {
   public:
     CanFrame(struct canfd_frame *);
     CanFrame(string);
+    CanFrame();
     ~CanFrame();
     unsigned int can_id;
     unsigned char len;

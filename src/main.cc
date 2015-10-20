@@ -69,6 +69,7 @@ int main(int argc, char *argv[]) {
   gd.setVerbose(verbose);
   while(running) {
     running = gui.HandleEvents();
+    gui.HandleAnimations();
     if(process_log) {
       if(log.Eof()) {
        process_log = false;
