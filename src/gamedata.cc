@@ -94,6 +94,7 @@ void GameData::HandleSim(canfd_frame *cf) {
   // Flow control is special
   if(cf->data[0] == 0x30 && !module) module = GameData::get_module(cf->can_id - 1);
   if(module) {
+     if(module->getIgnore()) return;
      if(!module->isResponder()) {
        module->setState(STATE_ACTIVE);
        if(_gui) _gui->DrawModules(true);
@@ -180,11 +181,16 @@ void GameData::processLearned() {
          it->setNegativeResponderID(responder->getArbId());
          responder->setResponder(true);
        }
-       responder = GameData::get_module(it->getArbId() + 0x08);
+       responder = GameData::get_module(it->getArbId() + 0x09);
        if(responder) { // Standard response
          it->setPositiveResponderID(responder->getArbId());
          it->setNegativeResponderID(responder->getArbId());
          responder->setResponder(true);
+       }
+       responder = GameData::get_module(it->getArbId() + 0x01);
+       if(responder) { // check for flow control
+         vector<CanFrame *>pkts = responder->getPacketsByBytePos(0, 0x30);
+         if(pkts.size() > 0) responder->setResponder(true);
        }
      }
   }
@@ -226,11 +232,12 @@ bool GameData::SaveConfig() {
       if(it->getPositiveResponder() != -1) configFile << "possitiveID = " << hex << it->getPositiveResponder() << endl;
       if(it->getNegativeResponder() != -1) configFile << "negativeID = " << hex << it->getNegativeResponder() << endl;
     }
+    if(it->getIgnore()) configFile << "ignore = " << it->getIgnore() << endl;
     configFile << "{Packets}" << endl;
     vector <CanFrame *>frames = it->getHistory();
     for(vector<CanFrame *>::iterator it2 = frames.begin(); it2 != frames.end(); ++it2) {
       CanFrame *frame = *it2;
-      configFile << frame->str() << endl;
+      configFile << frame->estr() << endl;
     }
     configFile << endl;
   }

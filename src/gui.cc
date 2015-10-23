@@ -218,7 +218,12 @@ void Gui::HandleMouseMotions(SDL_MouseMotionEvent motion) {
   bool change = false;
   bool change_toolbar = false;
   /* Check to see if hovering over a module */
-  vector<Module *>modules = gd.get_active_modules();
+  vector<Module *>modules;
+  if(gd.getMode() == MODE_LEARN) {
+    modules = gd.get_possible_active_modules();
+  } else {
+    modules = gd.get_active_modules();
+  }
   if(Gui::isOverCarRegion(x, y)) {
     for(vector<Module *>::iterator it = modules.begin(); it != modules.end(); ++it) {
       Module *mod = *it;
@@ -295,7 +300,12 @@ void Gui::HandleMouseClick(SDL_MouseButtonEvent button) {
   if(button.button == SDL_BUTTON_LEFT) {
     if(button.state == SDL_PRESSED) {
       if(Gui::isOverCarRegion(button.x, button.y)) {
-        vector<Module *>modules = gd.get_active_modules();
+        vector<Module *>modules;
+        if(gd.getMode() == MODE_LEARN) {
+          modules = gd.get_possible_active_modules();
+        } else {
+          modules = gd.get_active_modules();
+        }
         for(vector<Module *>::iterator it = modules.begin(); it != modules.end(); ++it) {
           Module *mod = *it;
           if(button.x > mod->getX() && button.x < mod->getX() + MODULE_W &&
@@ -334,10 +344,21 @@ void Gui::HandleMouseClick(SDL_MouseButtonEvent button) {
              mod->toggleFakeResponses();
              change_card = true;
         }
+        if(button.x > CARD_IGNORE_X && button.x < CARD_IGNORE_X + CARD_IGNORE_W &&
+           button.y > CARD_IGNORE_Y && button.y < CARD_IGNORE_Y + CARD_IGNORE_H) {
+             Module *mod = gd.get_module(module_selected);
+             mod->toggleIgnore();
+             change_card = true;
+        }
       }
     } else if (button.state == SDL_RELEASED) {
       if(Gui::isOverCarRegion(button.x, button.y)) {
-        vector<Module *>modules = gd.get_active_modules();
+        vector<Module *>modules;
+        if(gd.getMode() == MODE_LEARN) {
+          modules = gd.get_possible_active_modules();
+        } else {
+          modules = gd.get_active_modules();
+        }
         for(vector<Module *>::iterator it = modules.begin(); it != modules.end(); ++it) {
           Module *mod = *it;
           if(button.x > mod->getX() && button.x < mod->getX() + MODULE_W &&
@@ -564,6 +585,13 @@ void Gui::DrawInfoCard() {
         checkr.y = CARD_FAKE_RESP_Y - 3;
         checkr.h = CARD_FAKE_RESP_H;
         checkr.w = CARD_FAKE_RESP_W;
+        SDL_RenderCopy(renderer, check_texture, NULL, &checkr);
+      }
+      if(mod->getIgnore()) {
+        checkr.x = srect.x + CARD_IGNORE_X - 3;
+        checkr.y = CARD_IGNORE_Y - 3;
+        checkr.h = CARD_IGNORE_H;
+        checkr.w = CARD_IGNORE_W;
         SDL_RenderCopy(renderer, check_texture, NULL, &checkr);
       }
     }

@@ -23,7 +23,9 @@ class CanFrame {
     unsigned char len;
     unsigned char data[8];
     string str();
+    string estr();
     struct canfd_frame *toFrame();
+    vector<CanFrame *>queue;
   private:
     struct canfd_frame *_cf = NULL;
 };

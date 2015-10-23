@@ -22,8 +22,8 @@ bool ConfigParser::parse(string config) {
   filename = config;
   conf.open(filename);
   while(getline(conf, line)) {
-    // Remove comment character '#'
-    pos = line.find('#');
+    // Remove comment character ';'
+    pos = line.find(';');
     if(pos != string::npos) {
       line.erase(pos, string::npos);
     }
@@ -81,7 +81,7 @@ void ConfigParser::parseModule(Module *mod, string line, int pos) {
   stringstream ss;
   string field, value;
   int x,y, id;
-  bool responder;
+  bool responder, ignore;
   char d1; // dummy
   field = line;
   value = line;
@@ -95,13 +95,16 @@ void ConfigParser::parseModule(Module *mod, string line, int pos) {
   } else if(field == "responder") {
     ss >> responder;
     mod->setResponder(responder);
-  } else if(field == "positiveID") {
+  } else if(field == "possitiveID") {
     id = gd.string2hex(value);
     mod->setPositiveResponderID(id);
   } else if(field == "negativeID") {
     id = gd.string2hex(value);
     mod->setNegativeResponderID(id);
-  } else {
+  } else if(field == "ignore") {
+    ss >> ignore;
+    mod->setIgnore(ignore);
+  }else {
     cout << "config error: Unknown field " << field << endl;
   }
   ss.clear();

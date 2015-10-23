@@ -56,6 +56,10 @@ using namespace std;
 #define CARD_FAKE_RESP_Y 420
 #define CARD_FAKE_RESP_H 20
 #define CARD_FAKE_RESP_W 20
+#define CARD_IGNORE_X 172
+#define CARD_IGNORE_Y 420
+#define CARD_IGNORE_H 20
+#define CARD_IGNORE_W 20
 
 // Animation states
 #define CARD_NOANIM  0

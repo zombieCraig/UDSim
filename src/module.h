@@ -68,8 +68,12 @@ class Module
   void toggleFakeResponses() { _fake_responses ? _fake_responses = false : _fake_responses = true; }
   void setFakeResponses(bool t) { _fake_responses = t; }
   bool getFakeResponses() { return _fake_responses; }
+  void toggleIgnore() { _ignore ? _ignore = false : _ignore = true; }
+  void setIgnore(bool t) { _ignore = t; }
+  bool getIgnore() { return _ignore; }
   unsigned char calc_vin_checksum(char *, int);
   vector <CanFrame *>fetchHistory(struct canfd_frame *);
+  vector <CanFrame *>genericHandler(struct canfd_frame *);
   vector <CanFrame *>showCurrentData(struct canfd_frame *);
   vector <CanFrame *>vehicleInfoRequest(struct canfd_frame *);
   CanFrame *createPacket(int, char *, int);
@@ -93,6 +97,7 @@ class Module
   int positive_responder_id = -1;
   int negative_responder_id = -1;
   bool _fake_responses = false;
+  bool _ignore = false;
 };
 
 #endif
