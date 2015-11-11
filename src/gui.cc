@@ -23,7 +23,8 @@ Gui::~Gui() {
 
 int Gui::Init() {
   SDL_Surface *base_image, *module_image, *module_unk_image,  *icon_save_image, *icon_mode_image, *info_card_image;
-  SDL_Surface *check_image;
+  SDL_Surface *check_image, *slider_image;
+  int flags;
   if(SDL_Init ( SDL_INIT_VIDEO ) < 0 ) {
         printf("SDL Could not initializes\n");
         return(-1);
@@ -32,11 +33,18 @@ int Gui::Init() {
         printf("TTF Could not be initialized\n");
         return -2;
   }
-  window = SDL_CreateWindow("UDSim", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, Gui::getWidth(), Gui::getHeight(), SDL_WINDOW_SHOWN); // | SDL_WINDOW_RESIZABLE);
+  flags = SDL_WINDOW_SHOWN;
+  if(_fullscreen) {
+    //flags |= SDL_WINDOW_FULLSCREEN;
+    flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+  }
+  window = SDL_CreateWindow("UDSim", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, Gui::getWidth(), Gui::getHeight(), flags); // | SDL_WINDOW_RESIZABLE);
   if(window == NULL) {
         printf("Window could not be shown\n");
   }
   renderer = SDL_CreateRenderer(window, -1, 0);
+  if(_fullscreen) SDL_RenderSetLogicalSize(renderer, Gui::getWidth(), Gui::getHeight());
   base_image = Gui::load_image("udsbg.png");
   module_image = Gui::load_image("module.png");
   module_unk_image = Gui::load_image("module-unk.png");
@@ -44,11 +52,14 @@ int Gui::Init() {
   icon_mode_image = Gui::load_image("mode_icon.png");
   info_card_image = Gui::load_image("infocard.png");
   check_image = Gui::load_image("check.png");
+  slider_image = Gui::load_image("slider.png");
   base_texture = SDL_CreateTextureFromSurface(renderer, base_image);
   module_texture = SDL_CreateTextureFromSurface(renderer, module_image);
   module_unk_texture = SDL_CreateTextureFromSurface(renderer, module_unk_image);
   info_card_texture = SDL_CreateTextureFromSurface(renderer, info_card_image);
   check_texture = SDL_CreateTextureFromSurface(renderer, check_image);
+  slider_texture = SDL_CreateTextureFromSurface(renderer, slider_image);
+  SDL_FreeSurface(slider_image);
   SDL_FreeSurface(check_image);
   SDL_FreeSurface(info_card_image);
   SDL_FreeSurface(module_unk_image);
@@ -86,6 +97,65 @@ TTF_Font *Gui::load_font(string fontname, int size) {
   return TTF_OpenFontRW(file, 1, size);
 }
 
+void Gui::toggleFullscreen() {
+  int flags =  (SDL_GetWindowFlags(window) ^ SDL_WINDOW_FULLSCREEN_DESKTOP);
+  if (SDL_SetWindowFullscreen(window, flags) < 0) return;
+  SDL_SetWindowSize(window, Gui::getWidth(), Gui::getHeight());
+  if(flags & SDL_WINDOW_FULLSCREEN_DESKTOP) {
+    SDL_RenderSetLogicalSize(renderer, Gui::getWidth(), Gui::getHeight());
+    _fullscreen = true;
+  } else {
+    _fullscreen = false;
+  }
+  Gui::Redraw();
+}
+
+bool Gui::isModuleOverlapping(Module *mod) {
+    vector <Module *>modules;
+    int x = mod->getX();
+    int y = mod->getY();
+    bool overlapping = false;
+
+    if(gd.getMode() == MODE_LEARN) {
+      modules = gd.get_possible_active_modules();
+    } else {
+      modules = gd.get_active_modules();
+    }
+    for(vector<Module *>::iterator it = modules.begin(); it != modules.end(); ++it) {
+      Module *xmod = *it;
+      if(mod->getArbId() != xmod->getArbId()) {
+        // We need to check all four courners of the module to test for overlap
+        if((x >= xmod->getX() && x <= xmod->getX() + MODULE_W &&
+           y >= xmod->getY() && y <= xmod->getY() + MODULE_H) ||
+           (x + MODULE_W >= xmod->getX() && x + MODULE_W <= xmod->getX() + MODULE_W &&
+            y >= xmod->getY() && y <= xmod->getY() + MODULE_H) ||
+           (x >= xmod->getX() && x <= xmod->getX() + MODULE_W &&
+            y + MODULE_H >= xmod->getY() && y + MODULE_H <= xmod->getY() + MODULE_H) ||
+           (x + MODULE_W >= xmod->getX() && x + MODULE_W <= xmod->getX() + MODULE_W &&
+            y + MODULE_H >= xmod->getY() && y + MODULE_H <= xmod->getY() + MODULE_H)) {
+             overlapping = true;
+        }
+      }
+    }
+   return overlapping;
+}
+
+void Gui::setRandomModulePosition(Module *mod) {
+  int i;
+  bool good_location = false;
+
+  mod->setX(260 + (rand() % 100));
+  mod->setY(80 + rand() % 200);
+  for(i = 0; !good_location && i < MAX_RANDOM_ATTEMPTS; i++) {
+    if(Gui::isModuleOverlapping(mod)) {
+       mod->setX(260 + (rand() % 100));
+       mod->setY(80 + rand() % 200);
+    } else {
+      good_location = true;
+    }
+  }
+}
+
 void Gui::DrawModules(bool force_refresh) {
   SDL_Rect update, pos, car, trect;
   SDL_Color font_color = { 255, 255, 255, 255 };
@@ -113,8 +183,7 @@ void Gui::DrawModules(bool force_refresh) {
   for(vector<Module *>::iterator it = modules.begin(); it != modules.end(); ++it) {
     Module *mod = *it;
     if(mod->getX() == 0 && mod->getY() == 0) { // Initialize location
-      mod->setX(260 + (rand() % 100));
-      mod->setY(80 + rand() % 100);
+      setRandomModulePosition(mod);
     }
     pos.x = mod->getX();
     pos.y = mod->getY();
@@ -127,7 +196,7 @@ void Gui::DrawModules(bool force_refresh) {
       mod->setIdTexture(SDL_CreateTextureFromSurface(renderer, font));
       SDL_FreeSurface(font);
     }
-      if(mod->getPositiveResponder() > 0 && mod->getNegativeResponder() > 0) {
+      if(mod->getPositiveResponder() > 0 || mod->getNegativeResponder() > 0) {
         module_color = module_texture;
       } else {
         module_color = module_unk_texture;
@@ -297,6 +366,7 @@ void Gui::HandleMouseClick(SDL_MouseButtonEvent button) {
   bool change = false;
   bool change_toolbar = false;
   bool change_card = false;
+  unsigned int step = 0;
   if(button.button == SDL_BUTTON_LEFT) {
     if(button.state == SDL_PRESSED) {
       if(Gui::isOverCarRegion(button.x, button.y)) {
@@ -337,7 +407,7 @@ void Gui::HandleMouseClick(SDL_MouseButtonEvent button) {
           gd.nextMode();
         }
       } else if (Gui::isOverCardRegion(button.x, button.y)) {
-        // Fake Responses
+        // Card Options
         if(button.x > CARD_FAKE_RESP_X && button.x < CARD_FAKE_RESP_X + CARD_FAKE_RESP_W &&
            button.y > CARD_FAKE_RESP_Y && button.y < CARD_FAKE_RESP_Y + CARD_FAKE_RESP_H) {
              Module *mod = gd.get_module(module_selected);
@@ -349,6 +419,21 @@ void Gui::HandleMouseClick(SDL_MouseButtonEvent button) {
              Module *mod = gd.get_module(module_selected);
              mod->toggleIgnore();
              change_card = true;
+        }
+        if(button.x > CARD_FUZZ_VIN_X && button.x < CARD_FUZZ_VIN_X + CARD_FUZZ_VIN_W &&
+           button.y > CARD_FUZZ_VIN_Y && button.y < CARD_FUZZ_VIN_Y + CARD_FUZZ_VIN_H) {
+             Module *mod = gd.get_module(module_selected);
+             mod->toggleFuzzVin();
+             change_card = true;
+        }
+        if(button.x > CARD_FUZZ_LEVEL_X && button.x < CARD_FUZZ_LEVEL_X + CARD_FUZZ_LEVEL_W &&
+           button.y > CARD_FUZZ_LEVEL_Y && button.y < CARD_FUZZ_LEVEL_Y + CARD_FUZZ_LEVEL_H) {
+             Module *mod = gd.get_module(module_selected);
+             step = CARD_FUZZ_LEVEL_W / CARD_FUZZ_LEVEL_STEPS;
+             if(mod->getFuzzLevel() != (button.x - CARD_FUZZ_LEVEL_X) / step) {
+               mod->setFuzzLevel( (button.x - CARD_FUZZ_LEVEL_X) / step);
+               change_card = true;
+             }
         }
       }
     } else if (button.state == SDL_RELEASED) {
@@ -399,6 +484,16 @@ int Gui::HandleEvents() {
                         Gui::Redraw();
                 break;
             }
+            case SDL_KEYDOWN:
+                switch(event.key.keysym.sym) {
+                  case SDLK_ESCAPE:
+                    running = 0;
+                    break;
+                  case SDLK_f:
+                    Gui::toggleFullscreen();
+                    break;
+                }
+                break;
             case SDL_MOUSEMOTION:
                 Gui::HandleMouseMotions(event.motion);
                 break;
@@ -594,6 +689,19 @@ void Gui::DrawInfoCard() {
         checkr.w = CARD_IGNORE_W;
         SDL_RenderCopy(renderer, check_texture, NULL, &checkr);
       }
+      if(mod->getFuzzVin()) {
+        checkr.x = srect.x + CARD_FUZZ_VIN_X - 6;
+        checkr.y = CARD_FUZZ_VIN_Y - 3;
+        checkr.h = CARD_FUZZ_VIN_H;
+        checkr.w = CARD_FUZZ_VIN_W;
+        SDL_RenderCopy(renderer, check_texture, NULL, &checkr);
+      }
+      // Draw fuzz level
+      checkr.x = srect.x + CARD_FUZZ_LEVEL_X - 7 + (mod->getFuzzLevel() * (CARD_FUZZ_LEVEL_W / CARD_FUZZ_LEVEL_STEPS));
+      checkr.y = CARD_FUZZ_LEVEL_Y - 3;
+      checkr.h = FUZZ_SLIDER_H;
+      checkr.w = FUZZ_SLIDER_W;
+      SDL_RenderCopy(renderer, slider_texture, NULL, &checkr);
     }
   }
 }

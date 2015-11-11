@@ -108,6 +108,7 @@ void GameData::LearnPacket(canfd_frame *cf) {
   Module *module = GameData::get_possible_module(cf->can_id);
   Module *possible_module = GameData::isPossibleISOTP(cf);
   int possible;
+  // If module exists then we have seen this ID before
   if(module) {
     module->addPacket(cf);
     if(possible_module) {
@@ -159,14 +160,32 @@ Module *GameData::isPossibleISOTP(canfd_frame *cf) {
   return possible;
 }
 
+// Goes through the modules and removes ones that are less
+// likely to be of use
+void GameData::pruneModules() {
+  vector<Module> goodModules;
+  bool keep = false;
+
+  for(vector<Module>::iterator it = modules.begin(); it != modules.end(); ++it) {
+    keep = false;
+    if(it->confidence() > CONFIDENCE_THRESHOLD) {
+      if(it->getPositiveResponder() > -1 || it->getNegativeResponder() > -1)  keep = true;
+      if(it->isResponder()) keep = true;
+      if(!keep and it->getMatchedISOTP() > 0) keep = true;
+    }
+
+    if(keep) {
+      goodModules.push_back(*it);
+    } else {
+      if(verbose) cout << "Removing module " << hex << it->getArbId() << endl;
+    }
+  }
+  modules = goodModules;
+}
+
 void GameData::processLearned() {
   if(verbose) cout << "Identified " << possible_modules.size() << " possible modules" << endl;
-  for(vector<Module>::iterator it = possible_modules.begin(); it != possible_modules.end(); ++it) {
-    if(it->confidence() > CONFIDENCE_THRESHOLD) {
-      if(verbose) cout << "ID: " << hex << it->getArbId() << " Looks like a UDS compliant module" << endl;
-      modules.push_back(*it);
-    }
-  } 
+  modules = possible_modules;
   if(verbose) cout << "Locating responders" << endl;
   Module *responder = NULL;
   for(vector<Module>::iterator it = modules.begin(); it != modules.end(); ++it) {
@@ -181,23 +200,30 @@ void GameData::processLearned() {
          it->setNegativeResponderID(responder->getArbId());
          responder->setResponder(true);
        }
-       responder = GameData::get_module(it->getArbId() + 0x09);
-       if(responder) { // Standard response
+       responder = GameData::get_module(it->getArbId() + 0x08);
+       if(responder && it->foundResponse(responder)) { // Standard response
          it->setPositiveResponderID(responder->getArbId());
          it->setNegativeResponderID(responder->getArbId());
          responder->setResponder(true);
        }
        responder = GameData::get_module(it->getArbId() + 0x01);
-       if(responder) { // check for flow control
+       if(responder && it->foundResponse(responder)) { // check for flow control
          vector<CanFrame *>pkts = responder->getPacketsByBytePos(0, 0x30);
          if(pkts.size() > 0) responder->setResponder(true);
        }
      }
   }
+  GameData::pruneModules();
+  // Cleanup - After pruning we can space out modules more
+  possible_modules = modules; // Clear up possible to known modules
+  for(vector<Module>::iterator it = modules.begin(); it != modules.end(); ++it) {
+    Module *mod = &*it;
+    if(_gui->isModuleOverlapping(mod)) _gui->setRandomModulePosition(mod);
+  }
+  _gui->Redraw();
   stringstream m;
   m << "Identified " << GameData::get_active_modules().size() << " Active modules";
   GameData::Msg(m.str());
-  possible_modules.clear();
 }
 
 string GameData::frame2string(canfd_frame *cf) {
@@ -233,6 +259,8 @@ bool GameData::SaveConfig() {
       if(it->getNegativeResponder() != -1) configFile << "negativeID = " << hex << it->getNegativeResponder() << endl;
     }
     if(it->getIgnore()) configFile << "ignore = " << it->getIgnore() << endl;
+    if(it->getFuzzVin()) configFile << "fuzz_vin = " << it->getFuzzVin() << endl;
+    if(it->getFuzzLevel() > 0) configFile << "fuzz_level = " << it->getFuzzLevel() << endl;
     configFile << "{Packets}" << endl;
     vector <CanFrame *>frames = it->getHistory();
     for(vector<CanFrame *>::iterator it2 = frames.begin(); it2 != frames.end(); ++it2) {

@@ -9,6 +9,7 @@ Module::~Module() {
 
 /* Calculates the confidence that it is a UDS module based on seen ISOTP packets to non */
 float Module::confidence() {
+  if (getMatchedISOTP() == 0) return 0;
   float total = getMatchedISOTP() + getMissedISOTP();
   return (float)getMatchedISOTP() / total;
 }
@@ -27,6 +28,39 @@ void Module::addPacket(struct canfd_frame *cf) {
       can_history.push_back(newcf);
     }
   }
+}
+
+// Searches a given module for something that resemble a proper ISO-TP response
+bool Module::foundResponse(Module *responder) {
+  vector <CanFrame *>possible_resp;
+  // First we look through our packets for a formal request
+  for(vector<CanFrame *>::iterator it = can_history.begin(); it != can_history.end(); ++it) {
+    CanFrame *cf = *it;
+    possible_resp = responder->getPacketsByBytePos(1, cf->data[1] + 0x40);
+    if(possible_resp.size() > 0) { // Standard response
+      for(vector<CanFrame *>::iterator it = possible_resp.begin(); it != possible_resp.end(); ++it) {
+        CanFrame *pcf = *it;
+        if(cf->data[0] > 1) { // Request has a sub function
+          if(cf->data[2] == pcf->data[2]) return true;
+        } else {
+          return true;
+        }
+      }
+    }
+    // check for extended responses
+    possible_resp = responder->getPacketsByBytePos(2, cf->data[1] + 0x40);
+    for(vector<CanFrame *>::iterator it = possible_resp.begin(); it != possible_resp.end(); ++it) {
+      CanFrame *pcf = *it;
+      if(pcf->data[0] == 0x10) { // Multi packet
+        if(cf->data[0] > 1) { // Sub func
+          if(cf->data[2] == pcf->data[3]) return true;
+        } else {
+            return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 void Module::addPacket(string packet) {
@@ -48,6 +82,10 @@ void Module::setState(int s) {
 
 int Module::getState() {
   return state;  
+}
+
+void Module::setFuzzLevel(unsigned int level) {
+  if(level >= 0 && level <= 4) _fuzz_level = level;
 }
 
 /* Retrives all matching patckets give a matching byte at position */
@@ -124,7 +162,6 @@ CanFrame *Module::createPacket(int id,char *data, int len) {
   return cf;
 }
 
-// TODO: make this work :)
 vector <CanFrame *>Module::fetchHistory(struct canfd_frame *cf) {
   vector <CanFrame *>resp, req, possible_resp;
   if(getPositiveResponder() > -1 || getPositiveResponder() > -1) {
@@ -147,7 +184,7 @@ vector <CanFrame *>Module::fetchHistory(struct canfd_frame *cf) {
         possible_resp = responder->getPacketsByBytePos(2, cf->data[1] + 0x40);
         for(vector<CanFrame *>::iterator it = possible_resp.begin(); it != possible_resp.end(); ++it) {
           CanFrame *pcf = *it;
-          if(pcf->data[0] = 0x10) { // Multi packet
+          if(pcf->data[0] == 0x10) { // Multi packet
             if(cf->data[0] > 1) { // Sub func
               if(cf->data[2] == pcf->data[3]) {
                 resp.push_back(pcf);
@@ -179,16 +216,13 @@ vector <CanFrame *>Module::genericHandler(struct canfd_frame *cf) {
 }
 
 // Mode $01
-vector <CanFrame *>Module::showCurrentData(struct canfd_frame *cf) {
-  vector <CanFrame *>resp;
+vector <CanFrame *>Module::showCurrentData(vector <CanFrame *>resp, struct canfd_frame *cf) {
   char *buf;
   bool found = false;
   int target = cf->can_id + 9;
   stringstream ss;
   if(Module::getPositiveResponder() > -1) target = Module::getPositiveResponder();
   if(cf->len < 3) return resp;
-  // Check  to see if we have seen this yet
-  resp = Module::fetchHistory(cf);
   if (resp.size() > 0) found = true;
   if(!found && Module::getFakeResponses()) {
     switch(cf->data[2]) {
@@ -233,8 +267,7 @@ vector <CanFrame *>Module::showCurrentData(struct canfd_frame *cf) {
 }
 
 // Mode $09
-vector <CanFrame *>Module::vehicleInfoRequest(struct canfd_frame *cf) {
-  vector <CanFrame *>resp;
+vector <CanFrame *>Module::vehicleInfoRequest(vector <CanFrame *>resp, struct canfd_frame *cf) {
   CanFrame *test;
   bool found = false;
   int target = cf->can_id + 9;
@@ -243,8 +276,6 @@ vector <CanFrame *>Module::vehicleInfoRequest(struct canfd_frame *cf) {
   char default_vin[] = DEFAULT_VIN;
   if(Module::getPositiveResponder() > -1) target = Module::getPositiveResponder();
   if(cf->len < 3) return resp;
-  // Check  to see if we have seen this yet
-  resp = Module::fetchHistory(cf);
   if (resp.size() > 0) found = true;
   if(!found && Module::getFakeResponses()) {
     switch(cf->data[2]) {
@@ -271,7 +302,7 @@ vector <CanFrame *>Module::vehicleInfoRequest(struct canfd_frame *cf) {
         free(buf);
         break;
       default:
-        //ss << "Requested unsupported info 0x" << (unsigned char)cf->data[2];
+        cout << "Requested unsupported info 0x" << (unsigned char)cf->data[2];
         //gd.Msg(ss.str());
         break;
     }
@@ -294,193 +325,150 @@ vector <CanFrame *>Module::getResponse(struct canfd_frame *cf) {
       _queue.clear();
     }
   } else if (cf->len > 1) {
+    resp = Module::genericHandler(cf);
     switch(cf->data[1]) {
       // Modes
       case 0x01:
         ss << hex << cf->can_id << ": Mode Show Current Data";
-        resp = Module::showCurrentData(cf);
+        resp = Module::showCurrentData(resp, cf);
         break;
       case 0x02:
         ss << hex << cf->can_id << ": Mode Show Freeze Frame";
-        resp = Module::genericHandler(cf);
         break;
       case 0x03:
         ss << hex << cf->can_id << ": Mode Read DTC";
-        resp = Module::genericHandler(cf);
         break;
       case 0x04:
         ss << hex << cf->can_id << ": Mode Clear DTC";
-        resp = Module::genericHandler(cf);
         break;
       case 0x05:
         ss << hex << cf->can_id << ": Mode Non-CAN Test Results";
-        resp = Module::genericHandler(cf);
         break;
       case 0x06:
         ss << hex << cf->can_id << ": Mode CAN Test Results";
-        resp = Module::genericHandler(cf);
         break;
       case 0x07:
         ss << hex << cf->can_id << ": Mode Read Pending DTCs";
-        resp = Module::genericHandler(cf);
         break;
       case 0x08:
         ss << hex << cf->can_id << ": Mode Control Operations";
-        resp = Module::genericHandler(cf);
         break;
       case 0x09:
         ss << hex << cf->can_id << ": Mode Vehicle Information";
-        resp = Module::vehicleInfoRequest(cf);
+        resp = Module::vehicleInfoRequest(resp, cf);
         break;
       case 0x0A:
         ss << hex << cf->can_id << ": Mode Read Perm DTCs";
-        resp = Module::genericHandler(cf);
         break;
       // UDS
       case 0x10:
         if(_type = MODULE_TYPE_GM) {
           ss << hex << cf->can_id << ": (GMLAN) Initiate Diagnostic";
-          resp = Module::genericHandler(cf);
         } else {
           ss << hex << cf->can_id << ": Diagnostic Control";
-          resp = Module::genericHandler(cf);
         }
         break;
       case 0x11:
         ss << hex << cf->can_id << ": ECU Reset";
-        resp = Module::genericHandler(cf);
         break;
       case 0x12:
         ss << hex << cf->can_id << ": (GMLAN) Read Failure Record";
-        resp = Module::genericHandler(cf);
         break;
       case 0x14:
         ss << hex << cf->can_id << ": Clear DTC";
-        resp = Module::genericHandler(cf);
         break;
       case 0x19:
         ss << hex << cf->can_id << ": Read DTC";
-        resp = Module::genericHandler(cf);
         break;
       case 0x1A:
         ss << hex << cf->can_id << ": (GMLAN) Read DID by ID";
-        resp = Module::genericHandler(cf);
         break;
       case 0x20:
         ss << hex << cf->can_id << ": (GMLAN) Restart Communications";
-        resp = Module::genericHandler(cf);
         break;
       case 0x22:
         ss << hex << cf->can_id << ": Read Data by ID";
-        resp = Module::genericHandler(cf);
         break;
       case 0x23:
         ss << hex << cf->can_id << ": Read Memory by Address";
-        resp = Module::genericHandler(cf);
         break;
       case 0x24:
         ss << hex << cf->can_id << ": Read Scaling by ID";
-        resp = Module::genericHandler(cf);
         break;
       case 0x27:
         ss << hex << cf->can_id << ": Security Access";
-        resp = Module::genericHandler(cf);
         break;
       case 0x28:
         ss << hex << cf->can_id << ": (GMLAN) Stop Communications";
-        resp = Module::genericHandler(cf);
         break;
       case 0x2A:
         ss << hex << cf->can_id << ": Read Data by ID Periodic";
-        resp = Module::genericHandler(cf);
         break;
       case 0x2C:
         ss << hex << cf->can_id << ": Define Data ID";
-        resp = Module::genericHandler(cf);
         break;
       case 0x2E:
         ss << hex << cf->can_id << ": Write Data by ID";
-        resp = Module::genericHandler(cf);
         break;
       case 0x2F:
         ss << hex << cf->can_id << ": IO Control by ID";
-        resp = Module::genericHandler(cf);
         break;
       case 0x31:
         ss << hex << cf->can_id << ": Routine Control";
-        resp = Module::genericHandler(cf);
         break;
       case 0x34:
         ss << hex << cf->can_id << ": Request Download";
-        resp = Module::genericHandler(cf);
         break;
       case 0x35:
         ss << hex << cf->can_id << ": Request Upload";
-        resp = Module::genericHandler(cf);
         break;
       case 0x36:
         ss << hex << cf->can_id << ": Transfer Data";
-        resp = Module::genericHandler(cf);
         break;
       case 0x37:
         ss << hex << cf->can_id << ": Request Transfer Exit";
-        resp = Module::genericHandler(cf);
         break;
       case 0x38: 
         ss << hex << cf->can_id << ": Request Transfer File";
-        resp = Module::genericHandler(cf);
         break;
       case 0x3D:
         ss << hex << cf->can_id << ": Write Memory by Address";
-        resp = Module::genericHandler(cf);
         break;
       case 0x3E:
         ss << hex << cf->can_id << ": Tester Present";
-        resp = Module::genericHandler(cf);
         break;
       case 0x83:
         ss << hex << cf->can_id << ": Access Timing";
-        resp = Module::genericHandler(cf);
         break;
       case 0x84:
         ss << hex << cf->can_id << ": Secured Data Transfer";
-        resp = Module::genericHandler(cf);
         break;
       case 0x85:
         ss << hex << cf->can_id << ": Control DTC Settings";
-        resp = Module::genericHandler(cf);
         break;
       case 0x86:
         ss << hex << cf->can_id << ": Response on Event";
-        resp = Module::genericHandler(cf);
         break;
       case 0x87:
         ss << hex << cf->can_id << ": Link Control";
-        resp = Module::genericHandler(cf);
         break;
       case 0xA2:
         ss << hex << cf->can_id << ": (GMLAN) Programmed State";
-        resp = Module::genericHandler(cf);
         break;
       case 0xA5:
         ss << hex << cf->can_id << ": (GMLAN) Programing Mode";
-        resp = Module::genericHandler(cf);
         break;
       case 0xA9:
         ss << hex << cf->can_id << ": (GMLAN) Read Diag Info";
         break;
-        resp = Module::genericHandler(cf);
       case 0xAA:
         ss << hex << cf->can_id << ": (GMLAN) Read Data by ID";
-        resp = Module::genericHandler(cf);
         break;
       case 0xAE:
         ss << hex << cf->can_id << ": (GMLAN) Device Control";
-        resp = Module::genericHandler(cf);
         break;
       default:
         ss << hex << cf->can_id << ": Unknown request " << hex << (unsigned int)cf->data[1];
-        resp = Module::genericHandler(cf);
         break;
     }
   }

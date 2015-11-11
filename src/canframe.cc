@@ -58,7 +58,7 @@ CanFrame::CanFrame() {
 }
 
 CanFrame::~CanFrame() {
-  free(_cf);
+  if(_cf) free(_cf);
 }
 
 // Convert basic canframe to a string

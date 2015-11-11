@@ -54,6 +54,7 @@ class Module
   void addPacket(string);
   vector <CanFrame *>getHistory() { return can_history; }
   vector <CanFrame *>getPacketsByBytePos(unsigned int, unsigned char);
+  bool foundResponse(Module *);
   int getState();
   void setState(int s);
   int getX() { return _x; }
@@ -71,11 +72,16 @@ class Module
   void toggleIgnore() { _ignore ? _ignore = false : _ignore = true; }
   void setIgnore(bool t) { _ignore = t; }
   bool getIgnore() { return _ignore; }
+  void toggleFuzzVin() { _fuzz_vin ? _fuzz_vin = false : _fuzz_vin = true; }
+  void setFuzzVin(bool t) { _fuzz_vin = t; }
+  bool getFuzzVin() { return _fuzz_vin; }
+  unsigned int getFuzzLevel() { return _fuzz_level; }
+  void setFuzzLevel(unsigned int);
   unsigned char calc_vin_checksum(char *, int);
   vector <CanFrame *>fetchHistory(struct canfd_frame *);
   vector <CanFrame *>genericHandler(struct canfd_frame *);
-  vector <CanFrame *>showCurrentData(struct canfd_frame *);
-  vector <CanFrame *>vehicleInfoRequest(struct canfd_frame *);
+  vector <CanFrame *>showCurrentData(vector <CanFrame *>, struct canfd_frame *);
+  vector <CanFrame *>vehicleInfoRequest(vector <CanFrame *>, struct canfd_frame *);
   CanFrame *createPacket(int, char *, int);
   void setActiveTicks(int i) { _activeTicks = i; }
   int getActiveTicks() { return _activeTicks; }
@@ -96,7 +102,9 @@ class Module
   vector<CanFrame *>_queue;
   int positive_responder_id = -1;
   int negative_responder_id = -1;
+  unsigned int _fuzz_level = 0;
   bool _fake_responses = false;
+  bool _fuzz_vin = false;
   bool _ignore = false;
 };
 

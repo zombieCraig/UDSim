@@ -80,8 +80,8 @@ void ConfigParser::parseGlobals(string line) {
 void ConfigParser::parseModule(Module *mod, string line, int pos) {
   stringstream ss;
   string field, value;
-  int x,y, id;
-  bool responder, ignore;
+  int x, y, id, fuzz_level;
+  bool responder, ignore, fuzz_vin;
   char d1; // dummy
   field = line;
   value = line;
@@ -104,6 +104,12 @@ void ConfigParser::parseModule(Module *mod, string line, int pos) {
   } else if(field == "ignore") {
     ss >> ignore;
     mod->setIgnore(ignore);
+  } else if(field == "fuzz_vin") {
+    ss >> fuzz_vin;
+    mod->setFuzzVin(fuzz_vin);
+  } else if(field == "fuzz_level") {
+    ss >> fuzz_level;
+    mod->setFuzzLevel(fuzz_level);
   }else {
     cout << "config error: Unknown field " << field << endl;
   }

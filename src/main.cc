@@ -12,6 +12,7 @@ void Usage(string msg) {
  cout << "Usage: udsim [options] <can-if>" << endl;
  cout << "     -c <config file>    Configuration file for simulator" << endl;
  cout << "     -l <logfile>        Parse candump log to generate learning DB" << endl;
+ cout << "     -f                  Fullscreen" << endl;
  cout << "     -v                  Increase verbosity" << endl;
  cout << endl;
 }
@@ -26,7 +27,7 @@ int main(int argc, char *argv[]) {
 
   cout << "UDSim " << VERSION << endl;
 
-  while ((opt = getopt(argc, argv, "vc:l:h?")) != -1) {
+  while ((opt = getopt(argc, argv, "vfc:l:h?")) != -1) {
     switch(opt) {
       case 'v':
         verbose++;
@@ -40,6 +41,9 @@ int main(int argc, char *argv[]) {
         log.setLogFile(optarg);
         process_log = true;
         gd.setMode(MODE_LEARN);
+        break;
+      case 'f':
+        gui.setFullscreen(true);
         break;
       default:
         Usage("Help Menu");

@@ -7,6 +7,7 @@
 #include <sstream>
 #include <iomanip>
 #include <vector>
+#include <list>
 #include "module.h"
 #include "gui.h"
 #include "can.h"
@@ -53,6 +54,7 @@ class GameData
   private:
     void HandleSim(canfd_frame *);
     void LearnPacket(canfd_frame *);
+    void pruneModules();
     Module *isPossibleISOTP(canfd_frame *);
     void processLearned();
     int mode = MODE_SIM;

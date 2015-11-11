@@ -15,6 +15,7 @@
 using namespace std;
 
 #define MAX_LOG_ENTRIES 22
+#define MAX_RANDOM_ATTEMPTS 20 // Used for Module placement
 // The region of the vehicle on the screen
 #define CAR_REGION_X 245
 #define CAR_REGION_Y 58
@@ -60,6 +61,17 @@ using namespace std;
 #define CARD_IGNORE_Y 420
 #define CARD_IGNORE_H 20
 #define CARD_IGNORE_W 20
+#define CARD_FUZZ_VIN_X 20
+#define CARD_FUZZ_VIN_Y 360
+#define CARD_FUZZ_VIN_H 20
+#define CARD_FUZZ_VIN_W 20
+#define CARD_FUZZ_LEVEL_X 80
+#define CARD_FUZZ_LEVEL_Y 380
+#define CARD_FUZZ_LEVEL_H 15
+#define CARD_FUZZ_LEVEL_W 95
+#define CARD_FUZZ_LEVEL_STEPS 4
+#define FUZZ_SLIDER_W 20
+#define FUZZ_SLIDER_H 20
 
 // Animation states
 #define CARD_NOANIM  0
@@ -67,6 +79,7 @@ using namespace std;
 #define CARD_RETRACT 2
 
 class GameData;
+class Module;
 
 extern GameData gd;
 
@@ -82,10 +95,14 @@ class Gui {
   void setVerbose(int v) { verbose = v; }
   void setData(string s) { data_path = s; }
   void setFontPath(string f) { font_path = f; }
+  void setFullscreen(bool t) { _fullscreen = t; }
+  void toggleFullscreen();
   string getData() { return data_path; }
   string getFontPath() { return font_path; }
   SDL_Surface *load_image(string);
   TTF_Font *load_font(string, int);
+  bool isModuleOverlapping(Module *);
+  void setRandomModulePosition(Module *);
   void setStatus(string);
   void Redraw();
   void DrawModules(bool b = false);
@@ -116,6 +133,7 @@ class Gui {
   unsigned int _CardAnimationTicks = 10;
   int _card_current_x = -CARD_REGION_W;
   int _card_state = CARD_NOANIM;
+  bool _fullscreen = false;
   string data_path;
   string font_path;
   IconButton *saveButton = NULL;
@@ -130,6 +148,7 @@ class Gui {
   SDL_Texture *info_card_texture = NULL;
   SDL_Texture *_status = NULL;
   SDL_Texture *check_texture = NULL;
+  SDL_Texture *slider_texture = NULL;
   SDL_Event event;
   TTF_Font *module_ttf = NULL;
   TTF_Font *log_ttf = NULL;
