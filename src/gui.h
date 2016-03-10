@@ -51,6 +51,11 @@ using namespace std;
 #define ICON_MODE_Y 0
 #define ICON_MODE_H 50
 #define ICON_MODE_W 50
+// Fuzz Icon
+#define ICON_FUZZ_X 559
+#define ICON_FUZZ_Y 0
+#define ICON_FUZZ_H 50
+#define ICON_FUZZ_W 50
 
 // Card Options
 #define CARD_FAKE_RESP_X 20
@@ -138,6 +143,7 @@ class Gui {
   string font_path;
   IconButton *saveButton = NULL;
   IconButton *modeButton = NULL;
+  IconButton *fuzzButton = NULL;
   SDL_Texture *logbuff[MAX_LOG_ENTRIES];
   SDL_Window *window = NULL;
   SDL_Surface *screen = NULL;

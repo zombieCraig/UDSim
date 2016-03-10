@@ -82,6 +82,7 @@ void GameData::processPkt(canfd_frame *cf) {
       GameData::LearnPacket(cf);
       break;
     case MODE_ATTACK:
+      GameData::AttackPacket(cf);
       break;
     default:
       cout << "ERROR: Processing packets while in an unknown mode" << mode << endl;
@@ -91,6 +92,7 @@ void GameData::processPkt(canfd_frame *cf) {
 
 void GameData::HandleSim(canfd_frame *cf) {
   Module *module = GameData::get_module(cf->can_id);
+  CanFrame *resFrame = NULL;
   // Flow control is special
   if(cf->data[0] == 0x30 && !module) module = GameData::get_module(cf->can_id - 1);
   if(module) {
@@ -98,8 +100,26 @@ void GameData::HandleSim(canfd_frame *cf) {
      if(!module->isResponder()) {
        module->setState(STATE_ACTIVE);
        if(_gui) _gui->DrawModules(true);
-       vector<CanFrame *>response = module->getResponse(cf);
-       if(!response.empty()) canif->sendPackets(response);
+       vector<CanFrame *>response = module->getResponse(cf, false);
+       if(!response.empty()) {
+         resFrame = response.at(0);
+         if(resFrame->data[1] > 9) {
+           if (resFrame->data[0] > 8) {// Multi-byte
+             canif->sendPackets(response);
+           } else { // Single packet
+             if(response.size() > 1) {
+               // More than one possible answer, select a random one
+               vector<CanFrame *>randFrame;
+               randFrame.push_back(response.at(rand() % response.size()));
+               canif->sendPackets(randFrame);
+             } else {
+               canif->sendPackets(response);
+             }
+           }
+         } else { // <= 9 then MODE note PID
+           canif->sendPackets(response);
+         }
+       }
      }
   }
 }
@@ -131,6 +151,40 @@ void GameData::LearnPacket(canfd_frame *cf) {
     possible_module->addPacket(cf);
     possible_modules.push_back(*possible_module);
     if(_gui) _gui->DrawModules();
+  }
+}
+
+void GameData::AttackPacket(canfd_frame *cf) {
+  Module *module = GameData::get_module(cf->can_id);
+  CanFrame *resFrame = NULL;
+  // Flow control is special
+  if(cf->data[0] == 0x30 && !module) module = GameData::get_module(cf->can_id - 1);
+  if(module) {
+     if(module->getIgnore()) return;
+     if(!module->isResponder()) {
+       module->setState(STATE_ACTIVE);
+       if(_gui) _gui->DrawModules(true);
+       vector<CanFrame *>response = module->getResponse(cf, true);
+       if(!response.empty()) {
+         resFrame = response.at(0);
+         if(resFrame->data[1] > 9) {
+           if (resFrame->data[0] > 8) {// Multi-byte
+             canif->sendPackets(response);
+           } else { // Single packet
+             if(response.size() > 1) {
+               // More than one possible answer, select a random one
+               vector<CanFrame *>randFrame;
+               randFrame.push_back(response.at(rand() % response.size()));
+               canif->sendPackets(randFrame);
+             } else {
+               canif->sendPackets(response);
+             }
+           }
+         } else { // <= 9 then MODE note PID
+           canif->sendPackets(response);
+         }
+       }
+     }
   }
 }
 
@@ -272,6 +326,41 @@ bool GameData::SaveConfig() {
   configFile.close();
   Msg("Saved config_data.cfg");
   return true;
+}
+
+void GameData::launchPeach() {
+  ofstream peachXML;
+  peachXML.open("fuzz_can.xml");
+  peachXML << "<?xml version=\"1.0\" encoding=\"utf-8\"?>" << endl;
+  peachXML << "<Peach xmlns=\"http://peachfuzzer.com/2012/Peach\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"" << endl;
+  peachXML << "        xsi:schemaLocation=\"http://peachfuzzer.com/2012/Peach /peach/peach.xsd\">" << endl;
+  // TODO Use learned information to populate DataModels
+  peachXML << "        <DataModel name=\"CANPacket\">" << endl;
+  peachXML << "                <Blob name=\"sample1\" valueType=\"hex\" value=\"00 00 03 33 03 01 02 03 00 00 00 00 00 00 00 00\"/>" << endl;
+  peachXML << "        </DataModel>" << endl;
+  peachXML << endl;
+  peachXML << "        <StateModel name=\"TheState\" initialState=\"Initial\">" << endl;
+  peachXML << "                <State name=\"Initial\">" << endl;
+  peachXML << "                        <Action type=\"output\">" << endl;
+  peachXML << "                                <DataModel ref=\"CANPacket\"/>" << endl;
+  peachXML << "                        </Action>" << endl;
+  peachXML << "                </State>" << endl;
+  peachXML << "        </StateModel>" << endl;
+  peachXML << "        <Agent name=\"TheAgent\">" << endl;
+  peachXML << "        </Agent>" << endl;
+  peachXML << "        <Test name=\"Default\">" << endl;
+  peachXML << "                <Agent ref=\"TheAgent\"/>" << endl;
+  peachXML << "                <StateModel ref=\"TheState\"/>" << endl;
+  peachXML << "                <Publisher class=\"CAN\">" << endl;
+  peachXML << "                        <Param name=\"Interface\" value=\"" << canif->getIfname() << "\"/>" << endl;
+  peachXML << "                </Publisher>" << endl;
+  peachXML << "                <Logger class=\"File\">" << endl;
+  peachXML << "                        <Param name=\"Path\" value=\"logs\"/>" << endl;
+  peachXML << "                </Logger>" << endl;
+  peachXML << "        </Test>" << endl;
+  peachXML << "</Peach>" << endl;
+  peachXML.close();
+  Msg("Created fuzz_can.xml");
 }
 
 void GameData::nextMode() {

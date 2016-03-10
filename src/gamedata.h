@@ -48,12 +48,14 @@ class GameData
     void Msg(string);
     bool SaveConfig();
     void nextMode();
+    void launchPeach();
     void processCan();
     int string2hex(string);
     int string2int(string);
   private:
     void HandleSim(canfd_frame *);
     void LearnPacket(canfd_frame *);
+    void AttackPacket(canfd_frame *);
     void pruneModules();
     Module *isPossibleISOTP(canfd_frame *);
     void processLearned();

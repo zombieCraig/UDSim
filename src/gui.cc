@@ -22,7 +22,7 @@ Gui::~Gui() {
 }
 
 int Gui::Init() {
-  SDL_Surface *base_image, *module_image, *module_unk_image,  *icon_save_image, *icon_mode_image, *info_card_image;
+  SDL_Surface *base_image, *module_image, *module_unk_image,  *icon_save_image, *icon_mode_image, *icon_fuzz_image, *info_card_image;
   SDL_Surface *check_image, *slider_image;
   int flags;
   if(SDL_Init ( SDL_INIT_VIDEO ) < 0 ) {
@@ -50,6 +50,7 @@ int Gui::Init() {
   module_unk_image = Gui::load_image("module-unk.png");
   icon_save_image = Gui::load_image("save_icon.png");
   icon_mode_image = Gui::load_image("mode_icon.png");
+  icon_fuzz_image = Gui::load_image("fuzz_icon.png");
   info_card_image = Gui::load_image("infocard.png");
   check_image = Gui::load_image("check.png");
   slider_image = Gui::load_image("slider.png");
@@ -66,6 +67,10 @@ int Gui::Init() {
   SDL_FreeSurface(module_image);
   SDL_FreeSurface(base_image);
   // Toolbar
+  fuzzButton = new IconButton();
+  fuzzButton->setLoc(ICON_FUZZ_X, ICON_FUZZ_Y, ICON_FUZZ_H, ICON_FUZZ_W);
+  fuzzButton->setTexture(SDL_CreateTextureFromSurface(renderer, icon_fuzz_image));
+  SDL_FreeSurface(icon_fuzz_image);
   saveButton = new IconButton();
   saveButton->setLoc(ICON_SAVE_X, ICON_SAVE_Y, ICON_SAVE_H, ICON_SAVE_W);
   saveButton->setTexture(SDL_CreateTextureFromSurface(renderer, icon_save_image));
@@ -269,6 +274,8 @@ void Gui::DrawToolbar() {
   SDL_RenderCopy(renderer, saveButton->getTexture(), &icon, saveButton->getLoc());
   icon.x = modeButton->getState() * ICON_SAVE_W;
   SDL_RenderCopy(renderer, modeButton->getTexture(), &icon, modeButton->getLoc());
+  icon.x = fuzzButton->getState() * ICON_SAVE_W;
+  SDL_RenderCopy(renderer, fuzzButton->getTexture(), &icon, fuzzButton->getLoc());
 }
 
 void Gui::Redraw() {
@@ -331,6 +338,15 @@ void Gui::HandleMouseMotions(SDL_MouseMotionEvent motion) {
     }
   } else if(modeButton->getState() == ICON_STATE_HOVER) {
     modeButton->setState(ICON_STATE_IDLE);
+    change_toolbar = true;
+  }
+  if(fuzzButton->isOver(x, y)) {
+    if(fuzzButton->getState() == ICON_STATE_IDLE) {
+      fuzzButton->setState(ICON_STATE_HOVER);
+      change_toolbar = true;
+    }
+  } else if(fuzzButton->getState() == ICON_STATE_HOVER) {
+    fuzzButton->setState(ICON_STATE_IDLE);
     change_toolbar = true;
   }
   if(change) Gui::DrawModules();
@@ -406,6 +422,11 @@ void Gui::HandleMouseClick(SDL_MouseButtonEvent button) {
           change_toolbar = true;
           gd.nextMode();
         }
+        if(fuzzButton->isOver(button.x, button.y)) {
+          fuzzButton->setState(ICON_STATE_SELECTED);
+          change_toolbar = true;
+          gd.launchPeach();
+        }
       } else if (Gui::isOverCardRegion(button.x, button.y)) {
         // Card Options
         if(button.x > CARD_FAKE_RESP_X && button.x < CARD_FAKE_RESP_X + CARD_FAKE_RESP_W &&
@@ -459,6 +480,10 @@ void Gui::HandleMouseClick(SDL_MouseButtonEvent button) {
         }
         if(modeButton->isOver(button.x, button.y)) {
           modeButton->setState(ICON_STATE_HOVER);
+          change_toolbar = true;
+        }
+        if(fuzzButton->isOver(button.x, button.y)) {
+          fuzzButton->setState(ICON_STATE_HOVER);
           change_toolbar = true;
         }
      }

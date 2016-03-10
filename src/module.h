@@ -63,7 +63,7 @@ class Module
   void setY(int y) { _y = y; }
   SDL_Texture *getIdTexture() { return id_texture; }
   void setIdTexture(SDL_Texture *t) { id_texture = t; }
-  vector <CanFrame *>getResponse(struct canfd_frame *);
+  vector <CanFrame *>getResponse(struct canfd_frame *,bool);
   void setType(int t) { _type = t; }
   int getType() { return _type; }
   void toggleFakeResponses() { _fake_responses ? _fake_responses = false : _fake_responses = true; }
@@ -78,10 +78,13 @@ class Module
   unsigned int getFuzzLevel() { return _fuzz_level; }
   void setFuzzLevel(unsigned int);
   unsigned char calc_vin_checksum(char *, int);
+  vector <CanFrame *>inject_vin_checksum(vector <CanFrame *>);
   vector <CanFrame *>fetchHistory(struct canfd_frame *);
+  vector <CanFrame *>fetchHistorySubfunc(struct canfd_frame *);
   vector <CanFrame *>genericHandler(struct canfd_frame *);
   vector <CanFrame *>showCurrentData(vector <CanFrame *>, struct canfd_frame *);
   vector <CanFrame *>vehicleInfoRequest(vector <CanFrame *>, struct canfd_frame *);
+  vector <CanFrame *>fuzzResp(vector <CanFrame *>, struct canfd_frame *);
   CanFrame *createPacket(int, char *, int);
   void setActiveTicks(int i) { _activeTicks = i; }
   int getActiveTicks() { return _activeTicks; }
