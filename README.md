@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Unified Diagnostic Services Simulator
 -------------------------------------
 The UDSim is a graphical simulator that can emulate different modules
@@ -173,3 +174,8 @@ Note at the time of this writing there was a bug where you also needed to delete
 
 Once you have compiled then put a peach script in your path.  UDSim assumes peach is in the search path.
 
+=======
+# UDSim
+
+This tool will be released at NULLCON http://nullcon.net/
+>>>>>>> 01c10111391a6a5e463e995fb3badb6a990ff981
