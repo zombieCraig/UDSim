@@ -6,7 +6,9 @@ tool to run alongside of ICSim.  It also has some unqiue learning
 features and can even be used to security test dealership or other
 tools that plug into the OBD dongle
 
-NOTE: This is a complete rewrite of uds-server.
+NOTE: This is a complete rewrite of [uds-server](https://github.com/zombieCraig/uds-server).
+
+![alt text](https://github.com/zombieCraig/UDSim/blob/master/data/ss.png "UDSim Screenshot")
 
 Capabilities
 ------------
