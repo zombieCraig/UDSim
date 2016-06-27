@@ -254,6 +254,12 @@ void GameData::processLearned() {
          it->setNegativeResponderID(responder->getArbId());
          responder->setResponder(true);
        }
+       responder = GameData::get_module(it->getArbId() + 0x20);
+       if(responder && it->foundResponse(responder)) { // Renault/Dacia response
+         it->setPositiveResponderID(responder->getArbId());
+         it->setNegativeResponderID(responder->getArbId());
+         responder->setResponder(true);
+       }
        responder = GameData::get_module(it->getArbId() + 0x08);
        if(responder && it->foundResponse(responder)) { // Standard response
          it->setPositiveResponderID(responder->getArbId());

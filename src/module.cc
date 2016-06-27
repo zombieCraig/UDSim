@@ -22,7 +22,7 @@ void Module::addPacket(struct canfd_frame *cf) {
     if(old->str() == newcf->str()) dup_found = true;
   }
   if(!dup_found) {
-    if(cf->data[0] >= 0x21 && cf->data[0] < 0x30 && can_history.back()) {
+    if(cf->data[0] >= 0x20 && cf->data[0] < 0x30 && can_history.back()) {
       can_history.back()->queue.push_back(newcf);
     } else {
       can_history.push_back(newcf);
@@ -193,7 +193,7 @@ CanFrame *Module::createPacket(int id,char *data, int len) {
         for(i=1; i < 8; i++) cfq->data[i] = data[len - left + i-1];
         _queue.push_back(cfq);
         counter++;
-        if(counter >= 0x30) counter = 0x21;
+        if(counter >= 0x30) counter = 0x20;
         left-=7;
       } else {
         cfq->len = left + 1;
