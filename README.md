@@ -26,7 +26,7 @@ UDSim takes the following command line options:
      -v                  Increase verbosity
 ```
 
-The only required arbument is the CAN interface.  There are some example CAN initialization scripts
+The only required argument is the CAN interface.  There are some example CAN initialization scripts
 in the src folder for setting up canX and vcanX interfaces if you need them.
 
 UDSim as three modes:  Learning, Simulation and Attack
@@ -41,12 +41,12 @@ the CANbus.
 Press the disk icon to Save the learned information. When you press Save a config file called, 
 config_data.cfg is created.  This is a fairly easy to read the 
 summary of UDS Can packets layed out in an INI format.  You may want to copy this file and give it
-a speicifc name once you saved it so you don't accidently overwrite it.  This file can be used
+a specific name once you saved it so you don't accidently overwrite it.  This file can be used
 later by passing the -c option to UDSim.
 
 You can get UDSim to learn from recorded network traffic as well.  If you feed UDSim a logfile
 via the -l option, it will parse all of the logging information and then automatically switch
-to simulation mode once it is done.  The logfile are in candump format.
+to simulation mode once it is done.  The logfiles are in candump format.
 
 Because UDSim uses network communication to learn about modules in the vehicle that can communicate
 to UDS it does not need any previous knowledge of the vehicle to work.  It can work on any vehicle
@@ -68,7 +68,7 @@ the attack in a live interactive manner.
 
 Simulation is also good for testing out CAN related tools or providing classes.  Please note that
 simulation mode (in it's current revision) won't make up traffic it has never seen.  So don't expect
-to query informtion in simulation mode that you it hasn't seen traffic for.
+to query information in simulation mode that you it hasn't seen traffic for.
 
 ### Simulation Options
 There are two options available on a modules info card: Fake Responses and Ignore.  Ignore is
