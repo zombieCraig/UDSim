@@ -152,7 +152,14 @@ publisher to digest.
 
 Compiling
 ---------
-You need libsdl2-dev, libsdl2-image and libsdl2-ttf
+```
+# Install dependencies
+apt-get libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev
+
+# Build UDSim
+cd ./src
+make
+```
 
 For Attack Fuzzing
 ------------------
