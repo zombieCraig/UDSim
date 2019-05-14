@@ -55,7 +55,7 @@ work even on new vehicles or with vehicles with non-standard UDS commands.
 
 Simulation
 ----------
-Once you are satisfied with that UDSim has learned enough informaion you can press the MODE button
+Once you are satisfied with that UDSim has learned enough information you can press the MODE button
 to toggle the state to Simulation.  At this point UDSim will simulate the vehicle.  You can detach
 UDSim from the actual car and your diagnostic tools should still function and pull informaion as if
 you were attached to a real car.
@@ -67,15 +67,15 @@ Then all you need to bring with you on stage is UDSim and the config file and yo
 the attack in a live interactive manner.
 
 Simulation is also good for testing out CAN related tools or providing classes.  Please note that
-simulation mode (in it's current revision) won't make up traffic it has never seen.  So don't expect
-to query information in simulation mode that you it hasn't seen traffic for.
+simulation mode (in its current revision) won't make up traffic it has never seen.  So don't expect
+to query information in simulation mode that it hasn't seen traffic for.
 
 ### Simulation Options
 There are two options available on a modules info card: Fake Responses and Ignore.  Ignore is
 fairly self explanatory.  If you set a module to ignore then it will not respond to incoming
 requests.
 
-Fake Responses uses behavior simular to uds-server in that it will try to create a response
+Fake Responses uses behavior similar to uds-server in that it will try to create a response
 to any request even if it hasn't learned how that request works (ie: never seen it before).
 It does this by using the standard UDS syntax for responses and it will just plug in some
 default or random values for a response.  This is mainly only useful to see what a tool is
@@ -87,15 +87,15 @@ Attack
 ------
 UDSim has a builtin fuzzer.  This is a very limited fuzzing system compared to a full blown
 fuzzing framework.  However it can be useful for quick and easy fuzzing of a device and it
-understands and respects the ISO-TP protocol (unless you don't want it too).
+understands and respects the ISO-TP protocol (unless you don't want it to).
 
 ### Attack Options
 The module info card has two options: Fuzz VIN and a Fuzz Level.
 
-When you are doing fuzzing of a module, it is often good to keep the VIN the VIN from
-changing.  Many automototive tools use just the VIN to decide that they are indeed talking
-to the expected car.  So unless you are testing the VIN inputs of the diagnostic tools, it
-is usually best to leave this unchecked.
+When you are doing fuzzing of a module, it is often good to keep the VIN from changing.  
+Many automototive tools use just the VIN to decide that they are indeed talking to the
+expected car.  So unless you are testing the VIN inputs of the diagnostic tools, it is
+usually best to leave this unchecked.
 
 Fuzz Level.  When the bar is to the far left that disables fuzzing and makes the module work
 in simulation mode.  This can be useful if you want some modules to fuzz while others to work
@@ -144,7 +144,7 @@ Issue is here: https://github.com/mono/mono/blob/master/mcs/class/Mono.Posix/Mon
 				canWrite = true; 
 ```
 
-There are a few ways to work around this.  We can wriate a different publisher that uses [socketcand](https://github.com/dschanoeh/socketcand) or a even more hacked up version that calls out to can-utils.
+There are a few ways to work around this.  We can write a different publisher that uses [socketcand](https://github.com/dschanoeh/socketcand) or a even more hacked up version that calls out to can-utils.
 
 I'm looking for some peach fuzzing experts to pitch in some feedback on the best direction to go with this.
 Until this the fuzz_can.xml is in a hold state until we know what type of data would be easiest for the
