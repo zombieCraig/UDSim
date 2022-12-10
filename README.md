@@ -1,9 +1,9 @@
-#UDSim
+# UDSim
 
 UDS Simulator and Fuzzer
 
-Unified Diagnostic Services Simulator
--------------------------------------
+## Unified Diagnostic Services Simulator
+
 The UDSim is a graphical simulator that can emulate different modules
 in a vehicle and respond to UDS request.  It was designed as a training
 tool to run alongside of ICSim.  It also has some unqiue learning
@@ -14,8 +14,8 @@ NOTE: This is a complete rewrite of [uds-server](https://github.com/zombieCraig/
 
 ![alt text](https://github.com/zombieCraig/UDSim/blob/master/data/ss.png "UDSim Screenshot")
 
-Capabilities
-------------
+## Capabilities
+
 UDSim takes the following command line options:
 
 ```
@@ -31,8 +31,47 @@ in the src folder for setting up canX and vcanX interfaces if you need them.
 
 UDSim as three modes:  Learning, Simulation and Attack
 
-Learning
---------
+### Config File Syntax & Parameters
+
+Each file is a plain text file divided into sections, with configuration entries in the style
+key=value. Whitespace immediately before or after the "=" is ignored. Empty lines and lines
+starting with ";" are ignored, which may be used for commenting.
+
+[UDS_ID] - Section delimeter; UDS_ID is a hex CAN ID; each section defines a UDS server or client.
+
+pos - x,y coordinates in GUI to anchor this ECU graphic element
+
+responder - set to '1' if UDS server or '0' if UDS client
+
+positiveID - the arbitration ID to be monitored for positive UDS responses
+
+negativeID - the arbitration ID to be monitored for negative UDS responses
+
+{Packets} - Sub-section delimeter; Packets is a constant string; following lines contain observed packets formatted in the [can-utils way (see `parse_canframe`)](https://github.com/linux-can/can-utils/blob/master/lib.h)
+
+#### Example Config File
+
+Useful if you just want to get up and running on a virtual can bus without access to a car 
+or existing config file. Only supports SID 0x10 DiagnosticSessionControl.
+
+```
+[7e0]
+pos = 300,131
+responder = 0
+positiveID = 7e8
+negativeID = 7e8
+{Packets}
+7e0#0210030000000000
+
+[7e8]
+pos = 350,181
+responder = 1
+{Packets}
+7e8#0650030096177000
+```
+
+## Learning
+
 By default UDSim listens for activity on the specified CAN interface and will automatically
 learn UDS capable modules in the vehicle based on live network traffic.  To gather data you should
 attach a diagnostic device of some sort and run it against your vehicle while UDSim is monitoring
@@ -53,8 +92,8 @@ to UDS it does not need any previous knowledge of the vehicle to work.  It can w
 that uses ISO-TP.  It has some base knowledge of common UDS but does not rely on it and should
 work even on new vehicles or with vehicles with non-standard UDS commands.
 
-Simulation
-----------
+## Simulation
+
 Once you are satisfied with that UDSim has learned enough information you can press the MODE button
 to toggle the state to Simulation.  At this point UDSim will simulate the vehicle.  You can detach
 UDSim from the actual car and your diagnostic tools should still function and pull informaion as if
@@ -83,8 +122,8 @@ trying to talk to or if you need a module to use a mix of learned behavior and s
 behavior for any missing UDS requests.
 
 
-Attack
-------
+## Attack
+
 UDSim has a builtin fuzzer.  This is a very limited fuzzing system compared to a full blown
 fuzzing framework.  However it can be useful for quick and easy fuzzing of a device and it
 understands and respects the ISO-TP protocol (unless you don't want it to).

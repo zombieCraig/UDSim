@@ -315,7 +315,7 @@ bool GameData::SaveConfig() {
     configFile << "pos = " << dec << it->getX() << "," << it->getY() << endl;
     configFile << "responder = " << it->isResponder() << endl;
     if(!it->isResponder()) {
-      if(it->getPositiveResponder() != -1) configFile << "possitiveID = " << hex << it->getPositiveResponder() << endl;
+      if(it->getPositiveResponder() != -1) configFile << "positiveID = " << hex << it->getPositiveResponder() << endl;
       if(it->getNegativeResponder() != -1) configFile << "negativeID = " << hex << it->getNegativeResponder() << endl;
     }
     if(it->getIgnore()) configFile << "ignore = " << it->getIgnore() << endl;
