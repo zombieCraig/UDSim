@@ -95,7 +95,7 @@ void ConfigParser::parseModule(Module *mod, string line, int pos) {
   } else if(field == "responder") {
     ss >> responder;
     mod->setResponder(responder);
-  } else if(field == "possitiveID") {
+  } else if(field == "positiveID") {
     id = gd.string2hex(value);
     mod->setPositiveResponderID(id);
   } else if(field == "negativeID") {

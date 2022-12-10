@@ -43,7 +43,7 @@ pos - x,y coordinates in GUI to anchor this ECU graphic element
 
 responder - set to '1' if UDS server or '0' if UDS client
 
-possitiveID - the arbitration ID to be monitored for positive UDS responses
+positiveID - the arbitration ID to be monitored for positive UDS responses
 
 negativeID - the arbitration ID to be monitored for negative UDS responses
 
@@ -58,7 +58,7 @@ or existing config file. Only supports SID 0x10 DiagnosticSessionControl.
 [7e0]
 pos = 300,131
 responder = 0
-possitiveID = 7e8
+positiveID = 7e8
 negativeID = 7e8
 {Packets}
 7e0#0210030000000000
