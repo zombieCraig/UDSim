@@ -38,7 +38,7 @@ class GameData
     vector<Module *> get_possible_active_modules();
     void setMode(int);
     int getMode() { return mode; }
-    int setVerbose(int v) { verbose = v; }
+    void setVerbose(int v) { verbose = v; }
     int getVerbose() { return verbose; }
     void setCan(Can *c) { canif = c; }
     Can *getCan() { return canif; }

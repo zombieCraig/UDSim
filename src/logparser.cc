@@ -33,7 +33,7 @@ string LogParser::processNext() {
   char *fret;
   if (!log_opened) {
     logfp = fopen(logfile.c_str(), "r");
-    if(logfp < 0) {
+    if(logfp != NULL) {
       log_eof = true;
       return "Couldn't open logfile " + logfile;
     } else {
